@@ -1,4 +1,5 @@
-### This project is cloned and modified from https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
+### This project is cloned and modified from 
+### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
 
 # Version 0.1
 # 1. Summary
