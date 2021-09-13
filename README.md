@@ -11,9 +11,11 @@ I start this project by focusing on understanding Japanese realestate market and
 ## Train data
 ## Test data
 
+* Describe how to split data into train and test data set.
+
 # Exploring some of the most important variables
 # Missing data, label encoding and factorizing variables
 # Visualization of important variables
 # Feature engineering
 # Preparing data for modeling
-# Modeling haha
+# Modeling
