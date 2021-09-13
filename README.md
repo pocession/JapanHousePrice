@@ -32,7 +32,7 @@ library(psych)
 library(xgboost)
 ```
 
-Below, I am reading the the csv as dataframes into R and do some quick wrangling.
+I read the the csv as dataframes into R and do some quick wrangling.
 
 ```{r}
 # Get the files names
