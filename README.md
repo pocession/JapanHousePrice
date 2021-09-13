@@ -71,7 +71,7 @@ write.csv(test,file.path(dir,"Raw","test.csv"))
 # 5. Exploring some of the most important variables
 ## 5.1. The depenent variable, Transaction.price.total.
 Apparently the distribution of price is right skewed. It is because only a few real estates with extreme pries are transacted. Those data may be outliers and may need to be removed during analysis. Let's keep the data now but will remove before modeling.  
-(Result/Transaction.price.total.png)
+[Transaction.price.total.](/Result/Transaction.price.total.png?raw=true)
 # Missing data, label encoding and factorizing variables
 # Visualization of important variables
 # Feature engineering
