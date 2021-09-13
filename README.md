@@ -16,4 +16,4 @@ I start this project by focusing on understanding Japanese realestate market and
 # Visualization of important variables
 # Feature engineering
 # Preparing data for modeling
-# Modeling
+# Modeling haha
