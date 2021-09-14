@@ -17,7 +17,7 @@ In this version, only data of Kanagawa prefecture is used for modeling.
 
 # 3. Introduction
 # 4. Loading and exploring data
-# 4.1. Loading required libraries
+## 4.1. Loading required libraries
 
 ```{r, message=FALSE, warning=FALSE}
 library(knitr)
@@ -35,7 +35,7 @@ library(psych)
 library(xgboost)
 ```
 
-# 4.2. Loading csv data into R
+## 4.2. Loading csv data into R
 
 ```{r}
 # Get the files names
@@ -45,10 +45,11 @@ files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 ```
-# 4.3. Data wrangling
+## 4.3. Data wrangling
+### 4.3.1 Numeric data
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 ```{r}
-# Data wrangling -----------------------------------------------------------------------------------------------------
+# Data wrangling numeric -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
 # Year
@@ -97,14 +98,8 @@ names(numericVars)
  [7] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
 [10] "Year"                   
 ```
+### 4.3.2 Character data
 
-```{r}
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-numericVarNames <- names(numericVars) #saving names vector for use later on
-cat('There are', length(numericVars), 'numeric variables')
-
-There are 10 numeric variables
-```
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 
 ```{r}

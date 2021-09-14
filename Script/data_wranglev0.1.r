@@ -13,7 +13,7 @@ files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 
-# Data wrangling -----------------------------------------------------------------------------------------------------
+# Data wrangling numeric -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
 # Year
@@ -53,6 +53,7 @@ numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
 cat('There are', length(numericVars), 'numeric variables')
 
+# Data wrangling character -----------------------------------------------------------------------------------------------------
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
