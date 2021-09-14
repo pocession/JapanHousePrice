@@ -13,6 +13,7 @@ files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 
+# Data wrangling -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
 # Year
@@ -48,6 +49,11 @@ Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
 
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+numericVarNames <- names(numericVars) #saving names vector for use later on
+cat('There are', length(numericVars), 'numeric variables')
+
+# Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
   filter(Use == "House")
@@ -75,10 +81,6 @@ ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Transaction.price.
 # Have a summary of Transaction.price.total.
 summary_TRansaction.price.total <- summary(Raw$Transaction.price.total.)
 summary_TRansaction.price.total
-
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-numericVarNames <- names(numericVars) #saving names vector for use later on
-cat('There are', length(numericVars), 'numeric variables')
 
 all_numVar <- Raw[, numericVars]
 cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
