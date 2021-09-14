@@ -89,6 +89,15 @@ numericVarNames <- names(numericVars) #saving names vector for use later on
 cat('There are', length(numericVars), 'numeric variables')
 ```
 
+We should have 10 numeric variables. The list is below.
+```{r}
+names(numericVars)
+ [1] "Nearest.station.Distance.minute."   "Transaction.price.total."           "Area.m.2."                         
+ [4] "Transaction.price.Unit.price.m.2."  "Total.floor.area.m.2."              "Year.of.construction"              
+ [7] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
+[10] "Year"                   
+```
+
 ```{r}
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
