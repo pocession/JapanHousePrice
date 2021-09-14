@@ -46,6 +46,7 @@ Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 ```
 ## 4.3. Data wrangling
+We need to wrangle data before performing the analysis. Let's wrangle numeric and character data separately. 
 ### 4.3.1 Numeric data
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 ```{r}
