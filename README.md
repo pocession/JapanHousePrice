@@ -46,7 +46,7 @@ Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 ```
 # 4.3. Data wrangling
-Let's wrangle the numeric data first.
+Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 ```{r}
 # Data wrangling -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
@@ -87,9 +87,7 @@ Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
 cat('There are', length(numericVars), 'numeric variables')
-There are 10 numeric variables.
 ```
-Finally, let's check how many numeric variables we should have.
 
 ```{r}
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
