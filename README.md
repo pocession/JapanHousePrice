@@ -46,7 +46,9 @@ Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 ```
 # 4.3. Data wrangling
+Let's wrangle the numeric data first.
 ```{r}
+# Data wrangling -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
 # Year
@@ -81,6 +83,20 @@ Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.
 
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
+
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+numericVarNames <- names(numericVars) #saving names vector for use later on
+cat('There are', length(numericVars), 'numeric variables')
+There are 10 numeric variables.
+```
+Finally, let's check how many numeric variables we should have.
+
+```{r}
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+numericVarNames <- names(numericVars) #saving names vector for use later on
+cat('There are', length(numericVars), 'numeric variables')
+
+There are 10 numeric variables
 ```
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 
