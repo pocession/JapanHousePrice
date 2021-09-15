@@ -1,9 +1,12 @@
+# Loading essential packages -----------------------------------------------------------------------------------------------------
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
 library(ggrepel)
 library(corrplot)
+library(scales)
 
+# Loading data into R -----------------------------------------------------------------------------------------------------
 dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
 
 # Get the files names
@@ -20,7 +23,6 @@ Raw <- Raw[,2:ncol(Raw)]
 Raw <- Raw %>%
   separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
 
-# Check the numeric variables
 # Let's do some wrangling to make some non-numeirc variables be numeric
 # Area.m.2, Nearest.station.Distance.minute., Total.floor.area.m.2., Year.of.construction, Year, should be numeric variable
 # City code is not a numeric variable
@@ -29,10 +31,9 @@ Raw$Total.floor.area.m.2.<- as.numeric(Raw$Total.floor.area.m.2.)
 Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 Raw$Year <- as.numeric(Raw$Year)
 
-# Nearest.station.Distance.minute. needs more work to be numeric
+# Nearest.station.Distance.minute.: needs more work to be a numeric variable
 unique(Raw$Nearest.station.Distance.minute.)
 
-# Japanese era to Western era
 index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
 index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
 index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
@@ -41,19 +42,46 @@ Raw$Nearest.station.Distance.minute.[index1] <- 60
 Raw$Nearest.station.Distance.minute.[index2] <- 90
 Raw$Nearest.station.Distance.minute.[index3] <- 120
 Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
-
-# Check again
-unique(Raw$Nearest.station.Distance.minute.)
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
+# Frontage: only needs to replace one value
+unique(Raw$Frontage)
+
+index5 <- Raw$Frontage == "50.0m or longer"
+Raw$Frontage [index5] <- 50
+Raw$Frontage <- as.numeric(Raw$Frontage)
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
 
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
+numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 
+# Dealing with missing values-----------------------------------------------------------------------------------------------------
+# Check which variable contains missing values
+NAcol <- which(colSums(is.na(Raw)) > 0)
+sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
+intersect(numericVarNames,names(NAcol))
+cat('There are', length(NAcol), 'numeric variables containing missing values')
+
+# Complete the caculation of Transaction.price.Unit.price.m.2.
+# And obtain how many NAs are left, should be 1216
+Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
+
+# Check if NAs of the two variables are now all 1216
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
+
+# Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
+length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
+
+# Replace the NAs in Frontage.road.Breadth.m. with 0
+Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
+
 # Data wrangling character -----------------------------------------------------------------------------------------------------
+NAcol <- which(colSums(is.na(Raw)) > 0)
+sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 

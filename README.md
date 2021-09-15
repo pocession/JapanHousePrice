@@ -50,6 +50,24 @@ We need to wrangle data before performing the analysis. Let's wrangle numeric an
 ### 4.3.1 Numeric data
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 ```{r}
+# Loading essential packages -----------------------------------------------------------------------------------------------------
+library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(corrplot)
+library(scales)
+
+# Loading data into R -----------------------------------------------------------------------------------------------------
+dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
+
+# Get the files names
+files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
+
+# No is not a variable
+Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
+Raw <- Raw[,2:ncol(Raw)]
+
 # Data wrangling numeric -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
@@ -57,7 +75,6 @@ Let's wrangle the numeric data first. In the final, we should have 10 numeirc va
 Raw <- Raw %>%
   separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
 
-# Check the numeric variables
 # Let's do some wrangling to make some non-numeirc variables be numeric
 # Area.m.2, Nearest.station.Distance.minute., Total.floor.area.m.2., Year.of.construction, Year, should be numeric variable
 # City code is not a numeric variable
@@ -66,10 +83,9 @@ Raw$Total.floor.area.m.2.<- as.numeric(Raw$Total.floor.area.m.2.)
 Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 Raw$Year <- as.numeric(Raw$Year)
 
-# Nearest.station.Distance.minute. needs more work to be numeric
+# Nearest.station.Distance.minute.: needs more work to be a numeric variable
 unique(Raw$Nearest.station.Distance.minute.)
 
-# Japanese era to Western era
 index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
 index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
 index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
@@ -78,29 +94,70 @@ Raw$Nearest.station.Distance.minute.[index1] <- 60
 Raw$Nearest.station.Distance.minute.[index2] <- 90
 Raw$Nearest.station.Distance.minute.[index3] <- 120
 Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
-
-# Check again
-unique(Raw$Nearest.station.Distance.minute.)
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
+# Frontage: only needs to replace one value
+unique(Raw$Frontage)
+
+index5 <- Raw$Frontage == "50.0m or longer"
+Raw$Frontage [index5] <- 50
+Raw$Frontage <- as.numeric(Raw$Frontage)
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
 
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
+numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 ```
-
-We should have 10 numeric variables. The list is below.
+We should have 11 numeric variables. The list is below.
 ```{r}
-names(numericVars)
- [1] "Nearest.station.Distance.minute."   "Transaction.price.total."           "Area.m.2."                         
- [4] "Transaction.price.Unit.price.m.2."  "Total.floor.area.m.2."              "Year.of.construction"              
- [7] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
-[10] "Year"                   
-```
-### 4.3.2 Character data
+[1] "Nearest.station.Distance.minute."   "Transaction.price.total."           "Area.m.2."                         
+ [4] "Transaction.price.Unit.price.m.2."  "Frontage"                           "Total.floor.area.m.2."             
+ [7] "Year.of.construction"               "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..."
+[10] "Maximus.Floor.area.Ratio..."        "Year"    
 
+There are 11 numeric variables
+```
+### 4.3.2 Dealing with missing values
+In the dataset, missing values in variables are shown in NA or "" (Blank). Moreover, some NAs in numeric variables are associated with specific values in character variables. Let's start to identify NAs in numeric variables and deal with their associated character variables. We should have 9 numeric variables containing missing values, which are listed below.
+```{r}
+NAcol <- which(colSums(is.na(Raw)) > 0)
+sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
+intersect(numericVarNames,names(NAcol))
+cat('There are', length(NAcol), 'numeric variables containing missing values')  
+
+[1] "Nearest.station.Distance.minute."   "Area.m.2."                          "Transaction.price.Unit.price.m.2." 
+[4] "Frontage"                           "Total.floor.area.m.2."              "Year.of.construction"              
+[7] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."
+
+There are 9 numeric variables containing missing values
+```
+NAs in Transaction.price.Unit.price.m.2. have two meanings: either the value Area.m2. is lacking or the calculation is not performed. Let's complete the calculation first. Then we check whether the number of NAs left in Transaction.price.Unit.price.m.2. and in Area.m.2 equal to each other.
+
+```{r}
+# Complete the caculation of Transaction.price.Unit.price.m.2.
+# And obtain how many NAs are left, should be 1216
+Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
+
+# Check if NAs of the two variables are now all 1216
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
+
+True
+```
+Due to the information of Area is lacking, those 1216 data will be be used for further analysis. Let's keep it in mind and check other variables.
+
+NAs in Frontage.road.Breadth.m. means this real estate does not have any facing road, which is also reflected in another two variables: Frontage.road.Direction and Frontage.road.Classification.. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
+
+```{r}
+# Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
+length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
+
+# Replace the NAs in Frontage.road.Breadth.m. with 0
+Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
+```
+### 4.3.3 Split data into train and test dataset
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 
 ```{r}
