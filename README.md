@@ -157,6 +157,25 @@ length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.r
 # Replace the NAs in Frontage.road.Breadth.m. with 0
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 ```
+
+The variable Year.of.construction contains many NAs. But if we check it carefully, we can find out most of NAs come from the land property. Let's keep it in mind. We will not analyze houses with NAs in Year.of.construction.
+
+```{r}
+# Check the NAs in Year.of.construction
+Raw %>%
+  filter(is.na(Year.of.construction)) %>%
+  group_by(Type) %>%
+  summarise(count = n())
+
+  # A tibble: 5 x 2
+  Type                                count
+  <chr>                               <int>
+1 Agricultural Land                    4724
+2 Forest Land                          1090
+3 Pre-owned Condominiums, etc.          115
+4 Residential Land(Land and Building)  1447
+5 Residential Land(Land Only)         13859
+```
 ### 4.3.3 Split data into train and test dataset
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 

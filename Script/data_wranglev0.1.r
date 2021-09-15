@@ -79,6 +79,13 @@ length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.r
 # Replace the NAs in Frontage.road.Breadth.m. with 0
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 
+# Check the NAs in Year.of.construction
+Raw %>%
+  filter(is.na(Year.of.construction)) %>%
+  group_by(Type) %>%
+  summarise(count = n())
+
+
 # Data wrangling character -----------------------------------------------------------------------------------------------------
 NAcol <- which(colSums(is.na(Raw)) > 0)
 sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
