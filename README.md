@@ -155,11 +155,68 @@ Due to the information of Area as well as the Transaction.price.Unit.price.m.2. 
 Assign NAs to the following variables.
 
 ```{r}
-# Assign NAs to Region, Land Shape, USe, Purpose.of.Use
+# Assign NAs to Region, Land Shape, USe, Purpose.of.Use, Building.structure, Layout
 Raw$Region[which(Raw$Region == "")] <- NA
 Raw$Land.shape[which(Raw$Land.shape == "")] <- NA
 Raw$Use[which(Raw$Use == "")] <- NA
 Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- NA
+Raw$Building.structure[which(Raw$Building.structure == "")] <- NA
+Raw$Layout[which(Raw$Layout == "")] <- NA
+```
+
+NAs woulc be found in Nearest.station.Distance.minute. Most of NAs are caused by missing values in Nearest.station.Distance.Name. We then replace "" (Blank) in Nearest.station.Distance.Name. with "No_station" if the corresponding value of Nearest.station.Distance.minute. is NA. In the final, there are 14 records with station names but without minutes information. Let's keep their values as NAs and exclude them from analysis.
+
+```{r}
+# Check whether NAs in Nearest.station.Distance.minute. are caused by missing values in Nearest.station.Distance.Name.
+Raw %>% 
+  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
+
+# A tibble: 15 x 2
+   Nearest.station.Name   count
+   <chr>                  <int>
+ 1 ""                      6643
+ 2 "Hanazono (Takamatsu)"     1
+ 3 "Ichinomiya"               1
+ 4 "Kamogawa"                 1
+ 5 "Katamoto"                 1
+ 6 "Kawaramachi"              1
+ 7 "Kitacho"                  1
+ 8 "Marugame"                 2
+ 9 "Nishimaeda"               1
+10 "Sakaide"                  3
+11 "Sanjo (Takamatsu)"        1
+12 "Sanukimure"               1
+13 "Shioya (Takamatsu)"       1
+14 "Tadotsu"                  1
+15 "Takata (Takamatsu)"       1
+Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
+
+# Check again
+Raw %>% 
+  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
+
+# A tibble: 15 x 2
+   Nearest.station.Name count
+   <chr>                <int>
+ 1 Hanazono (Takamatsu)     1
+ 2 Ichinomiya               1
+ 3 Kamogawa                 1
+ 4 Katamoto                 1
+ 5 Kawaramachi              1
+ 6 Kitacho                  1
+ 7 Marugame                 2
+ 8 Nishimaeda               1
+ 9 No_station            6643
+10 Sakaide                  3
+11 Sanjo (Takamatsu)        1
+12 Sanukimure               1
+13 Shioya (Takamatsu)       1
+14 Tadotsu                  1
+15 Takata (Takamatsu)       1
 ```
 
 NAs in Frontage.road.Breadth.m. means this real estate does not have any facing road, which is also reflected in another two variables: Frontage.road.Direction and Frontage.road.Classification.. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
@@ -216,7 +273,17 @@ Raw %>%
 2 Forest Land                  1090
 3 Residential Land(Land Only) 13859
 ```
-### 4.3.3 Split data into train and test dataset
+
+Lastly, let's assign NAs to the last two variables, Revonation and Transactional.factors.
+```{r}
+# Assigns NAs to Renovation and Transactional.factors
+Raw$Renovation[which(Raw$Renovation == "")] <- NA
+Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
+
+``` 
+### 4.3.3 Factorize data
+Next, let's factorize variables. For some variables, if the values have ordinality, we should make it as ordinal factors.  
+### 4.3.4 Split data into train and test dataset
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 
 ```{r}

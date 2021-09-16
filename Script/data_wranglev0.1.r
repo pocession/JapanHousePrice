@@ -16,7 +16,7 @@ files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 Raw <- Raw[,2:ncol(Raw)]
 
-# Data wrangling numeric -----------------------------------------------------------------------------------------------------
+# Numeric data wrangling -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling
 # Year
@@ -44,7 +44,6 @@ Raw$Nearest.station.Distance.minute.[index3] <- 120
 Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
-# Frontage: only needs to replace one value
 unique(Raw$Frontage)
 
 index5 <- Raw$Frontage == "50.0m or longer"
@@ -74,11 +73,40 @@ length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
 # Check if NAs of the two variables are now all 1216
 length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
 
+# Assign NAs to Region, Land Shape, USe, Purpose.of.Use, Building.structure, Layout
+Raw$Region[which(Raw$Region == "")] <- NA
+Raw$Land.shape[which(Raw$Land.shape == "")] <- NA
+Raw$Use[which(Raw$Use == "")] <- NA
+Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- NA
+Raw$Building.structure[which(Raw$Building.structure == "")] <- NA
+Raw$Layout[which(Raw$Layout == "")] <- NA
+
+# Check whether NAs in Nearest.station.Distance.minute. are caused by missing values in Nearest.station.Distance.Name.
+Raw %>% 
+  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
+
+Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
+
+# Check again
+Raw %>% 
+  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
+
 # Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
 length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
 
 # Replace the NAs in Frontage.road.Breadth.m. with 0
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
+
+# Assign Nas to Frontage.road.Classification and Frontage.road.Direction
+Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- NA
+Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- NA
+
+# Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
+length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
 
 # Check the NAs in Year.of.construction
 Raw %>%
@@ -86,10 +114,22 @@ Raw %>%
   group_by(Type) %>%
   summarise(count = n())
 
+# 1935 is a fake number to those house properties built before WWII.
+Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc.")] <- 1935
+Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building)")] <- 1935
 
-# Data wrangling character -----------------------------------------------------------------------------------------------------
-NAcol <- which(colSums(is.na(Raw)) > 0)
-sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
+# Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
+Raw %>%
+  filter(is.na(Year.of.construction)) %>%
+  group_by(Type) %>%
+  summarise(count = n())
+
+# Assigns NAs to Renovation and Transactional.factors
+Raw$Renovation[which(Raw$Renovation == "")] <- NA
+Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
+
+# Factorize data---------------------------------------------------------------------------------------------------------
+
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
