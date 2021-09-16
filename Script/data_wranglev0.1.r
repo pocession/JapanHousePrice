@@ -129,7 +129,14 @@ Raw$Renovation[which(Raw$Renovation == "")] <- NA
 Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
 
 # Factorize data---------------------------------------------------------------------------------------------------------
+# Factorize non-ordinal variables first
+Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area",
+             "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
+             "City.Planning","Renovation")
+Raw[Factors]<-lapply(Raw[Factors],factor)
 
+# Factorize ordinal variables
+Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 

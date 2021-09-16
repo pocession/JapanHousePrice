@@ -274,7 +274,7 @@ Raw %>%
 3 Residential Land(Land Only) 13859
 ```
 
-Lastly, let's assign NAs to the last two variables, Revonation and Transactional.factors.
+Lastly, let's assign NAs to the last two variables, Revonation and Transactional.factors. In fact, Transactional.factors is more or less like a note. We will not use this variable during analysis.
 ```{r}
 # Assigns NAs to Renovation and Transactional.factors
 Raw$Renovation[which(Raw$Renovation == "")] <- NA
