@@ -113,6 +113,7 @@ Raw %>%
 # 1935 is a fake number to those house properties built before WWII.
 Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc.")] <- 1935
 Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building)")] <- 1935
+Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 
 # Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
 Raw %>%

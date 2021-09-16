@@ -11,6 +11,9 @@ dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/
 train <- read.csv(file.path(dir,"Raw","train.csv"), stringsAsFactors = F)
 test <-  read.csv(file.path(dir,"Raw","test.csv"), stringsAsFactors = F)
 
+train <- train[2:ncol(train)]
+test <- test[2:ncol(test)]
+
 # Visualize the transaction price
 ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 ggplot(data=train[!is.na(train$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
@@ -21,12 +24,17 @@ ggplot(data=train[!is.na(train$Transaction.price.Unit.price.m.2.),], aes(x=Trans
 summary_Transaction.price.Unit.price.m2. <- summary(train$Transaction.price.Unit.price.m.2.)
 summary_Transaction.price.Unit.price.m2.
 
-all_numVar <- Raw[, numericVars]
+numericVars <- which(sapply(train, is.numeric))
+all_numVar <- train[, numericVars]
 cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
 
-# Sort on decreasing correlations with Transaction.price.total.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
-cor_sorted
+# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
+cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
+# Select only high corelations
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
 
 # The variable selected to be shown here are based their correlation with Transaction.price.total.
 # I want to show all variables, so I set the filter at a very low value. 

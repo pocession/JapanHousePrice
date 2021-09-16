@@ -1,7 +1,7 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
 
-# Version 0.1
+# Version 1.0
 # 1. Summary
 I start this project by focusing on understanding Japanese realestate market and preacticing my data analysis skills. The EDA and modeling are documented in each section.
 
@@ -259,6 +259,7 @@ Raw %>%
 # 1935 is a fake number to those house properties built before WWII.
 Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc.")] <- 1935
 Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building)")] <- 1935
+Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 
 # Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
 Raw %>%
