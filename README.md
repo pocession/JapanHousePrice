@@ -340,7 +340,17 @@ drops <- c("Transaction.price.total.","quarter.2","Renovation","Transactional.fa
 Raw <- Raw[ , !(names(Raw) %in% drops)]
 ```
 
-### 4.3.4 Split data into train and test dataset
+```{r}
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
+cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
+
+There are 10 numeric variables, and 16 categoric variables.
+```
+
+The data wrangling part ends here. Be reminded that we still need to do one-hot encoding for non-ordinal factor variables. We will handle this in modeling section.
+
+### 4.3.6 Split data into train and test dataset
 Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
 
 ```{r}
@@ -360,25 +370,26 @@ write.csv(test,file.path(dir,"Raw","test.csv"))
 ```
 
 # 5. Exploring some of the most important variables
-## 5.1. The depenent variable, Transaction.price.total.
+## 5.1. The depenent variable, Transaction.price.Unit.price.m2.
 Apparently the distribution of price is right skewed. It is because only a few real estates are transacted with high prices. Those data may be outliers. Let's keep the data now but will remove before modeling.
 
 ```{r}
-# Visualize the transaction price
-ggsave(file.path(dir,"Result","Transaction.price.total.png"))
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Transaction.price.total.)) +
-  geom_histogram(fill="blue", binwidth = 1000000) 
+# Visualize the transaction price per square meter
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
+ggplot(data=train[!is.na(train$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
+  geom_histogram(fill="blue", binwidth = 10000) 
 #dev.off()
+
 ```
-![Transaction.price.total.](/Result/Transaction.price.total.png?raw=true)
+![Transaction.price.Unit.price.m2.](/Result/Transaction.price.Unit.price.m2.png?raw=true)
 
 ```{r}
-# Have a summary of Transaction.price.total.
-summary_TRansaction.price.total <- summary(Raw$Transaction.price.total.)
-summary_TRansaction.price.total
+# Have a summary of Transaction.price.Unit.price.m2.
+summary_Transaction.price.Unit.price.m2. <- summary(train$Transaction.price.Unit.price.m.2.)
+summary_Transaction.price.Unit.price.m2.
 
-##   Min.   1st Qu.    Median      Mean   3rd Qu.      Max. 
-##   1400   5300000  11000000  14193646  21000000 340000000 
+## Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##   10   30323   71198   92117  130000 1507692      11 
 ```
 ## 5.2. The most important numeric variable
 I need to process the chacater variables before analyzing them. Let's start to check the numeric variable first.

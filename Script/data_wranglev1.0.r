@@ -1,10 +1,6 @@
 # Loading essential packages -----------------------------------------------------------------------------------------------------
 library(dplyr)
 library(tidyverse)
-library(ggplot2)
-library(ggrepel)
-library(corrplot)
-library(scales)
 
 # Loading data into R -----------------------------------------------------------------------------------------------------
 # dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
@@ -146,6 +142,11 @@ str(Raw)
 # Some variables are not required for the further analysis.
 drops <- c("Transaction.price.total.","quarter.2","Renovation","Transactional.factors")
 Raw <- Raw[ , !(names(Raw) %in% drops)]
+
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
+cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
+
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
@@ -164,31 +165,5 @@ test <- Raw[-train_ind, ]
 # Save train and test data into csv files
 write.csv(train,file.path(dir,"Raw","train.csv"))
 write.csv(test,file.path(dir,"Raw","test.csv"))
-
-# Visualize the transaction price
-ggsave(file.path(dir,"Result","Transaction.price.total.png"))
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Transaction.price.total.)) +
-  geom_histogram(fill="blue", binwidth = 1000000) 
-#dev.off()
-
-# Have a summary of Transaction.price.total.
-summary_TRansaction.price.total <- summary(Raw$Transaction.price.total.)
-summary_TRansaction.price.total
-
-all_numVar <- Raw[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-
-# Sort on decreasing correlations with Transaction.price.total.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
-cor_sorted
-
-# The variable selected to be shown here are based their correlation with Transaction.price.total.
-# I want to show all variables, so I set the filter at a very low value. 
-CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
-cor_numVar <- cor_numVar[CorHigh, CorHigh]
-
-png(file.path(dir,"Result","Correlation.png"))
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
-#dev.off()
 
 
