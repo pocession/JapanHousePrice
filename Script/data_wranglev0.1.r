@@ -7,8 +7,8 @@ library(corrplot)
 library(scales)
 
 # Loading data into R -----------------------------------------------------------------------------------------------------
-dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
-
+# dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
+dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
 # Get the files names
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 
@@ -130,13 +130,22 @@ Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
 
 # Factorize data---------------------------------------------------------------------------------------------------------
 # Factorize non-ordinal variables first
-Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area",
+Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
              "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
              "City.Planning","Renovation")
 Raw[Factors]<-lapply(Raw[Factors],factor)
 
 # Factorize ordinal variables
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
+Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
+                                                          "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
+
+
+str(Raw)
+# Drop some variables ----------------------------------------------------------------------------------------------------
+# Some variables are not required for the further analysis.
+drops <- c("Transaction.price.total.","quarter.2","Renovation","Transactional.factors")
+Raw <- Raw[ , !(names(Raw) %in% drops)]
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
