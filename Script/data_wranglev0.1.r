@@ -59,11 +59,12 @@ numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 
 # Dealing with missing values-----------------------------------------------------------------------------------------------------
-# Check which variable contains missing values
+# Check which variable contains missing values. missing values could be NA or "" (Blank).
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)
-sort(colSums(sapply(Raw[NAcol], is.na)), decreasing = TRUE)
-intersect(numericVarNames,names(NAcol))
-cat('There are', length(NAcol), 'numeric variables containing missing values')
+missingcol<-union(names(blankcol),names(NAcol))
+cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
 
 # Complete the caculation of Transaction.price.Unit.price.m.2.
 # And obtain how many NAs are left, should be 1216
