@@ -387,7 +387,26 @@ summary_Transaction.price.Unit.price.m2.
 ##   10   30323   71198   92117  130000 1507692      11 
 ```
 ## 5.2. The correlation between numeric variables and the unit price
+We can check the unit price is affected which numeric variables most. 
 
+```{r}
+summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
+summary_Transaction.price.Unit.price.m2.
+
+numericVars <- which(sapply(all, is.numeric))
+all_numVar <- all[, numericVars]
+cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+
+# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
+cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
+# Select only high corelations
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+```
+
+![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
 ### 5.2.1. Correlation with Transaction.price.total.
 Let's see how many numeric variables first.
 ```{r}
