@@ -364,9 +364,9 @@ write.csv(train,file.path(dir,"Raw","train.csv"))
 write.csv(test,file.path(dir,"Raw","test.csv"))
 ```
 
-# 5. Exploring some of the most important variables
-## 5.1. The depenent variable, Transaction.price.Unit.price.m2.
-Apparently the distribution of price is right skewed. It is because only a few real estates are transacted with high prices. Those data may be outliers. Let's keep the data now but will remove before modeling.
+# 5. Exploring variables
+## 5.1. The depenent variable, Transaction.price.Unit.price.m2. (Unit price)
+Transaction.price.Unit.price.m2. is our dependent variable, or Y. For simplicity, we will call it as unit price from now. Let's check the distribution first. Apparently the distribution is right skewed and it is because only a few real estates are transacted with high prices. Those data are so0called outliers. Let's keep the data now but will remove those data before modeling.
 
 ```{r}
 # Visualize the transaction price per square meter
@@ -386,8 +386,8 @@ summary_Transaction.price.Unit.price.m2.
 ## Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
 ##   10   30323   71198   92117  130000 1507692      11 
 ```
-## 5.2. The most important numeric variable
-I need to process the chacater variables before analyzing them. Let's start to check the numeric variable first.
+## 5.2. The correlation between numeric variables and the unit price
+
 ### 5.2.1. Correlation with Transaction.price.total.
 Let's see how many numeric variables first.
 ```{r}

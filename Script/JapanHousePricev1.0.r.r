@@ -177,14 +177,14 @@ write.csv(Raw,file.path(dir,"Wrangled","wrangled.csv"))
 
 
 
-# Identifying numeric varialbes correlated with dependent variables --------------------------------------------------------------
+# Identifying numeric varialbes correlated with dependent variables ------------------------------------------------------
 # Visualize the transaction price-----------------------------------------------------------------------------------------
 ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 ggplot(data=train[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
   geom_histogram(fill="blue", binwidth = 10000) 
-#dev.off()
+dev.off()
 
-# Have a summary of Transaction.price.Unit.price.m2.
+# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
 summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
 summary_Transaction.price.Unit.price.m2.
 
@@ -198,4 +198,16 @@ cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], d
 CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
 cor_numVar <- cor_numVar[CorHigh, CorHigh]
 
+png(file.path(dir,"Result","CorrelationvarNum.png"))
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+dev.off()
+
+# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
+RF<-na.action(all)
+set.seed(2018)
+quick_RF <- randomForest(x=RF[1:5000,-c(6,7,11,17)], y=RF$Transaction.price.Unit.price.m.2.[1:5000], ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+
+ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
