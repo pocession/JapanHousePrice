@@ -20,19 +20,13 @@ In this version, only data of Kanagawa prefecture is used for modeling.
 ## 4.1. Loading required libraries
 
 ```{r, message=FALSE, warning=FALSE}
-library(knitr)
-library(ggplot2)
-library(plyr)
 library(dplyr)
-library(corrplot)
-library(caret)
-library(gridExtra)
-library(scales)
-library(Rmisc)
+library(tidyverse)
+library(ggplot2)
 library(ggrepel)
+library(corrplot)
+library(scales)
 library(randomForest)
-library(psych)
-library(xgboost)
 ```
 
 ## 4.2. Loading csv data into R

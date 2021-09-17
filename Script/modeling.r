@@ -3,13 +3,15 @@ library(ggplot2)
 library(ggrepel)
 library(corrplot)
 library(scales)
+library(randomForest)
 
 # Read train and test data -----------------------------------------------------------------------------------------------
-# dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
-dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
+dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
+# dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
 # Get the files names
-train <- read.csv(file.path(dir,"Raw","train.csv"), stringsAsFactors = F)
-test <-  read.csv(file.path(dir,"Raw","test.csv"), stringsAsFactors = F)
+all <- read.csv(file.path(dir,"Wrangled","wrangled.csv"))
+train <- read.csv(file.path(dir,"Wrangled","train.csv"))
+test <-  read.csv(file.path(dir,"Wrangled","test.csv"))
 
 train <- train[2:ncol(train)]
 test <- test[2:ncol(test)]

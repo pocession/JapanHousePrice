@@ -1,10 +1,15 @@
 # Loading essential packages -----------------------------------------------------------------------------------------------------
 library(dplyr)
 library(tidyverse)
+library(ggplot2)
+library(ggrepel)
+library(corrplot)
+library(scales)
+library(randomForest)
 
 # Loading data into R -----------------------------------------------------------------------------------------------------
-# dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
-dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
+dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
+# dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
 # Get the files names
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 
@@ -163,8 +168,34 @@ train_ind <- sample(seq_len(nrow(Raw)), size = smp_size)
 train <- Raw[train_ind, ]
 test <- Raw[-train_ind, ]
 
-# Save train and test data into csv files
-write.csv(train,file.path(dir,"Raw","train.csv"))
-write.csv(test,file.path(dir,"Raw","test.csv"))
+all <- Raw
+
+# Save wrangled, train and test data into csv files
+write.csv(train,file.path(dir,"Wrangled","train.csv"))
+write.csv(test,file.path(dir,"Wrangled","test.csv"))
+write.csv(Raw,file.path(dir,"Wrangled","wrangled.csv"))
 
 
+
+# Identifying numeric varialbes correlated with dependent variables --------------------------------------------------------------
+# Visualize the transaction price-----------------------------------------------------------------------------------------
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
+ggplot(data=train[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
+  geom_histogram(fill="blue", binwidth = 10000) 
+#dev.off()
+
+# Have a summary of Transaction.price.Unit.price.m2.
+summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
+summary_Transaction.price.Unit.price.m2.
+
+numericVars <- which(sapply(all, is.numeric))
+all_numVar <- all[, numericVars]
+cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+
+# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
+cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
+# Select only high corelations
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
