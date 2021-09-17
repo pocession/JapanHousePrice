@@ -1,4 +1,5 @@
 # Loading essential packages -----------------------------------------------------------------------------------------------------
+library(rstudioapi)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
@@ -6,11 +7,9 @@ library(ggrepel)
 library(corrplot)
 library(scales)
 library(randomForest)
-
 # Loading data into R -----------------------------------------------------------------------------------------------------
-dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
-# dir <- "C:/Users/Tsunghan/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice/"
-# Get the files names
+current_path = rstudioapi::getActiveDocumentContext()$path
+dir <- setwd(dirname(current_path ))
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 
 # No is not a variable

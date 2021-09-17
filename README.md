@@ -32,7 +32,9 @@ library(randomForest)
 ## 4.2. Loading csv data into R
 
 ```{r}
-# Get the files names
+# Loading data into R -----------------------------------------------------------------------------------------------------
+current_path = rstudioapi::getActiveDocumentContext()$path
+dir <- setwd(dirname(current_path ))
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 
 # No is not a variable
@@ -44,24 +46,6 @@ We need to wrangle data before performing the analysis. Let's wrangle numeric an
 ### 4.3.1 Numeric data
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 ```{r}
-# Loading essential packages -----------------------------------------------------------------------------------------------------
-library(dplyr)
-library(tidyverse)
-library(ggplot2)
-library(ggrepel)
-library(corrplot)
-library(scales)
-
-# Loading data into R -----------------------------------------------------------------------------------------------------
-dir <- "E:/Dropbox (OIST)/Ishikawa Unit/Tsunghan/JapanHousePrice"
-
-# Get the files names
-files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
-
-# No is not a variable
-Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
-Raw <- Raw[,2:ncol(Raw)]
-
 # Data wrangling numeric -----------------------------------------------------------------------------------------------------
 # There are some works needs to be done before we start the analysis
 # Let's check numeric data first and perform wrangling

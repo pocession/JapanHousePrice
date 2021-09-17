@@ -1,3 +1,4 @@
 Raw/*
 Wrangled/*
-*.RDatacd
+*.RData
+*.Rhistory
