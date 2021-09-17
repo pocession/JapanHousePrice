@@ -1,4 +1,4 @@
 Raw/*
-Wrangled/*
+Wrangled/apartment.csv
 *.RData
 *.Rhistory
