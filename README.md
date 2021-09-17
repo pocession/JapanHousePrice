@@ -12,7 +12,6 @@ In this version, only data of Kanagawa prefecture is used for modeling.
 
 # 2. Files
 * Due to the large size of data files, data are not uploaded to the repository. You can download the data from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet).
-* All R scripts in [Script](Script/).
 * All plots in [Result](Result/).
 
 # 3. Introduction
