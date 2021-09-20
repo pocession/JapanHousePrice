@@ -234,8 +234,8 @@ Raw %>%
 5 Residential Land(Land Only)         13859
 
 # 1935 is a fake number to those house properties built before WWII.
-Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc.")] <- 1935
-Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building)")] <- 1935
+Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Year.of.construction))] <- 1935
+Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building )" & is.na(Raw$Year.of.construction))] <- 1935
 Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 
 # Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
@@ -328,38 +328,22 @@ There are 10 numeric variables, and 16 categoric variables.
 
 The data wrangling part ends here. Be reminded that we still need to do one-hot encoding for non-ordinal factor variables. We will handle this in modeling section.
 
-### 4.3.6 Split data into train and test dataset
-Then I split the data into train and test dataset. I use 75% of sample as train dataset. The other 25% are left for test dataset. I save both datasets as csv file.
-
-```{r}
-## 75% of the sample size
-smp_size <- floor(0.75 * nrow(Raw))
-
-## set the seed to make your partition reproducible
-set.seed(120)
-train_ind <- sample(seq_len(nrow(Raw)), size = smp_size)
-
-train <- Raw[train_ind, ]
-test <- Raw[-train_ind, ]
-
-# Save train and test data into csv files
-write.csv(train,file.path(dir,"Raw","train.csv"))
-write.csv(test,file.path(dir,"Raw","test.csv"))
-```
-
 # 5. Exploring variables
 ## 5.1. The depenent variable, Transaction.price.Unit.price.m2. (Unit price)
 Transaction.price.Unit.price.m2. is our dependent variable, or Y. For simplicity, we will call it as unit price from now. Let's check the distribution first. Apparently the distribution is right skewed and it is because only a few real estates are transacted with high prices. Those data are so0called outliers. Let's keep the data now but will remove those data before modeling.
 
 ```{r}
-# Visualize the transaction price per square meter
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
-ggplot(data=train[!is.na(train$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
-  geom_histogram(fill="blue", binwidth = 10000) 
-#dev.off()
+# Visualize the transaction price-----------------------------------------------------------------------------------------
+# We only consier house price
+all <- Raw %>%
+  filter(Use == "House")
 
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
+ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
+  geom_histogram(fill="blue", binwidth = 10000) 
+dev.off()
 ```
-![Transaction.price.Unit.price.m2.](/Result/Transaction.price.Unit.price.m2.png?raw=true)
+![Transaction.price.Unit.price.m2](/Result/Transaction.price.Unit.price.m2.png?raw=true)
 
 ```{r}
 # Have a summary of Transaction.price.Unit.price.m2.
@@ -367,31 +351,31 @@ summary_Transaction.price.Unit.price.m2. <- summary(train$Transaction.price.Unit
 summary_Transaction.price.Unit.price.m2.
 
 ## Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-##   10   30323   71198   92117  130000 1507692      11 
+##   10   30556   72727   92688  130000 1507692      13
 ```
 ## 5.2. The correlation between numeric variables and the unit price
-We can check the unit price is affected which numeric variables most. 
+We then check the unit price is affected by which numeric variables most. Apparently, the unit price is positively correlated with the year that the house was built, with a correlation coefficient of 0.5. Newer houses are more expensive, very reasonable. Interestingly, the size of the house has a negative correlation with the unit price (-0.37). It seems people prefer the smaller houses. We also find many variables are correlated, such as Maximus.Building.Coverage.Ratio... and Maximus.Floor.area.Ratio.... We will remove one of those correlated variables before modeling.
 
 ```{r}
-summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
-summary_Transaction.price.Unit.price.m2.
-
 numericVars <- which(sapply(all, is.numeric))
 all_numVar <- all[, numericVars]
 cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
 
 # Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
 cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
-# Select only high corelations
-CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
-cor_numVar <- cor_numVar[CorHigh, CorHigh]
+# Display all correlation
+Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.)))
+cor_numVar <- cor_numVar[Cor, Cor]
 
+png(file.path(dir,"Result","CorrelationvarNum.png"))
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+dev.off()
 ```
 
 ![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
-### 5.2.1. Correlation with Transaction.price.total.
-Let's see how many numeric variables first.
+### 5.2.1. The correlation between categorical (factor) variables and the unit price.
+We move to check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We choose the top 53 frequent stations and areas for this analysis.Finally, we need to exclude NAs from the data. We "impute" those NAs by using random forest, and yes, perform random forest again to draw the important variables from this imputed data.
+
 ```{r}
 # Check the numeric variables
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables

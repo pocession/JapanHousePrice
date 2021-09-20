@@ -115,8 +115,8 @@ Raw %>%
   summarise(count = n())
 
 # 1935 is a fake number to those house properties built before WWII.
-Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc.")] <- 1935
-Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building)")] <- 1935
+Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Year.of.construction))] <- 1935
+Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building )" & is.na(Raw$Year.of.construction))] <- 1935
 Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
 
 # Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
@@ -140,8 +140,6 @@ Raw[Factors]<-lapply(Raw[Factors],factor)
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
 Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
                                                           "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
-
-
 str(Raw)
 # Drop some variables ----------------------------------------------------------------------------------------------------
 # Some variables are not required for the further analysis.
@@ -151,6 +149,59 @@ Raw <- Raw[ , !(names(Raw) %in% drops)]
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
 cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
+# Identifying numeric varialbes correlated with dependent variables ------------------------------------------------------
+# Visualize the transaction price-----------------------------------------------------------------------------------------
+# We only consier house price
+all <- Raw %>%
+  filter(Use == "House")
+
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
+ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
+  geom_histogram(fill="blue", binwidth = 10000)
+dev.off()
+
+summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
+summary_Transaction.price.Unit.price.m2.
+
+# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
+numericVars <- which(sapply(all, is.numeric))
+all_numVar <- all[, numericVars]
+cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+
+# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
+cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
+# Display all correlation
+Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.)))
+cor_numVar <- cor_numVar[Cor, Cor]
+
+png(file.path(dir,"Result","CorrelationvarNum.png"))
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+dev.off()
+
+# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
+RF<- all %>%
+  filter(!is.na(Transaction.price.Unit.price.m.2.))
+set.seed(2018)
+
+# randomForest can not handle variables containing more than 53 level, let's choose the most frequent stations and areas for this analysis. 
+# randomForest also cannot handle NAs, use rfImpute instead.
+# ntree = 100 and 300 does not differ. 
+# Using only 5000 data does not differ from using all data for randomForest. But use 3000 data makes the Variance decreased from 45% to 37%.
+RF <- RF %>%
+  group_by(Area) %>%
+  filter(n() > 60)
+RF$Area <- factor(RF$Area)
+RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
+RF<-as.data.frame(RF)
+RF_impute<-rfImpute(RF[,-c(11,17)],RF[,11],iter=1,ntree=300,importance=TRUE)
+quick_RF <- randomForest(x=RF_impute[,-c(1)], y=RF_impute[,1], ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+
+ggsave(file.path(dir,"Result","randomForest.png"))
+ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+
 
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
@@ -173,40 +224,3 @@ all <- Raw
 write.csv(train,file.path(dir,"Wrangled","train.csv"))
 write.csv(test,file.path(dir,"Wrangled","test.csv"))
 write.csv(Raw,file.path(dir,"Wrangled","wrangled.csv"))
-
-
-
-# Identifying numeric varialbes correlated with dependent variables ------------------------------------------------------
-# Visualize the transaction price-----------------------------------------------------------------------------------------
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
-ggplot(data=train[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
-  geom_histogram(fill="blue", binwidth = 10000) 
-dev.off()
-
-# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
-summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
-summary_Transaction.price.Unit.price.m2.
-
-numericVars <- which(sapply(all, is.numeric))
-all_numVar <- all[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-
-# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
-# Select only high corelations
-CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
-cor_numVar <- cor_numVar[CorHigh, CorHigh]
-
-png(file.path(dir,"Result","CorrelationvarNum.png"))
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-dev.off()
-
-# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
-RF<-na.action(all)
-set.seed(2018)
-quick_RF <- randomForest(x=RF[1:5000,-c(6,7,11,17)], y=RF$Transaction.price.Unit.price.m.2.[1:5000], ntree=100,importance=TRUE)
-imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
-imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
-
-ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
