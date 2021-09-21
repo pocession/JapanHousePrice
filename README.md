@@ -97,7 +97,7 @@ We should have 11 numeric variables. The list is below.
 There are 11 numeric variables
 ```
 ### 4.3.2 Dealing with missing values
-We can find that missing values in variables are shown in NA or "" (Blank) in this dataset. We can also notice that some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.
+Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.
 ```{r}
 Nblankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)
@@ -107,93 +107,26 @@ cat('There are', length(missingcol), 'variables containing missing values')
 There are 21 variables containing missing values
 
 [1] "Region"                             "Nearest.station.Name"               "Layout"                            
- [4] "Land.shape"                         "Building.structure"                 "Use"                               
- [7] "Purpose.of.Use"                     "Frontage.road.Direction"            "Frontage.road.Classification"      
+[4] "Land.shape"                         "Building.structure"                 "Use"                               
+[7] "Purpose.of.Use"                     "Frontage.road.Direction"            "Frontage.road.Classification"      
 [10] "City.Planning"                      "Renovation"                         "Transactional.factors"             
 [13] "Nearest.station.Distance.minute."   "Area.m.2."                          "Transaction.price.Unit.price.m.2." 
 [16] "Frontage"                           "Total.floor.area.m.2."              "Year.of.construction"              
 [19] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."     
 ```
-Transaction.price.Unit.price.m.2. will be our dependent variable (Y). Let's handle it first. NAs in Transaction.price.Unit.price.m.2. have two meanings: either the value Area.m2. is lacking or the calculation is not performed. Let's complete the calculation first. Then we check whether the number of NAs left in Transaction.price.Unit.price.m.2. and in Area.m.2 equal to each other.
+
+Let's deal variables one by one.
+* Region: In fact, Region and Type are related. Many NAs in Regions are related to forest land and agricultural land. Only a small fraction of NAs are related to Pre-owned Condominiums. This data will not be used in our analysis. For the remained NAs, assign "no_information" to them. 
+* Nearest.station.Name: this variable is related to Nearest.station.Distance.minute.. So let's identify data that contain missing values in both Nearest.station.Name and Nearest.station.Distance.minute.. We then assign "No_station" and a dummy number 999 to those data. Lastly, we exclude data that contains station names but without any distance information.
+* Layout, Land.shape, building.structure, Use, Purpose.of.Use: assign "No_information" to NAs.
+* Transaction.price.Unit.price.m.2.: this variable is our dependent variable (Y). NAs in Transaction.price.Unit.price.m.2. have two meanings: either the value Area.m2. is lacking or the calculation is not performed. Let's complete the calculation first. Then we check whether the number of NAs left in Transaction.price.Unit.price.m.2. and in Area.m.2 equal to each other. Those data should be excluded in the analysis.
+* Frontage.road.Direction: this variable is related to other two variables: Frontage.road.Classification and Frontage.road.Breadth.m.. If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
+* City.Planing, Renovation, and Transactional.factors: Assign "No_information" to missing values in these three variables.
+* Frontage: this variable is related to Type and Frontage.road.Direction. Data belong to land properties do not contain frontage data. We assign a dummy number 0 to data belong to land properties. Then we exclude data belong to land+buildings but without the frontage information.
+
 
 ```{r}
-# Complete the caculation of Transaction.price.Unit.price.m.2.
-# And obtain how many NAs are left, should be 1216
-Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
 
-# Check if NAs of the two variables are now all 1216
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
-
-True
-```
-Due to the information of Area as well as the Transaction.price.Unit.price.m.2. are lacking, those 1216 data will not be be used in our analysis.
-
-Assign NAs to the following variables.
-
-```{r}
-# Assign NAs to Region, Land Shape, USe, Purpose.of.Use, Building.structure, Layout
-Raw$Region[which(Raw$Region == "")] <- NA
-Raw$Land.shape[which(Raw$Land.shape == "")] <- NA
-Raw$Use[which(Raw$Use == "")] <- NA
-Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- NA
-Raw$Building.structure[which(Raw$Building.structure == "")] <- NA
-Raw$Layout[which(Raw$Layout == "")] <- NA
-```
-
-NAs woulc be found in Nearest.station.Distance.minute. Most of NAs are caused by missing values in Nearest.station.Distance.Name. We then replace "" (Blank) in Nearest.station.Distance.Name. with "No_station" if the corresponding value of Nearest.station.Distance.minute. is NA. In the final, there are 14 records with station names but without minutes information. Let's keep their values as NAs and exclude them from analysis.
-
-```{r}
-# Check whether NAs in Nearest.station.Distance.minute. are caused by missing values in Nearest.station.Distance.Name.
-Raw %>% 
-  filter(is.na(Nearest.station.Distance.minute.)) %>%
-  group_by(Nearest.station.Name) %>%
-  summarise(count = n())
-
-# A tibble: 15 x 2
-   Nearest.station.Name   count
-   <chr>                  <int>
- 1 ""                      6643
- 2 "Hanazono (Takamatsu)"     1
- 3 "Ichinomiya"               1
- 4 "Kamogawa"                 1
- 5 "Katamoto"                 1
- 6 "Kawaramachi"              1
- 7 "Kitacho"                  1
- 8 "Marugame"                 2
- 9 "Nishimaeda"               1
-10 "Sakaide"                  3
-11 "Sanjo (Takamatsu)"        1
-12 "Sanukimure"               1
-13 "Shioya (Takamatsu)"       1
-14 "Tadotsu"                  1
-15 "Takata (Takamatsu)"       1
-Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
-
-# Check again
-Raw %>% 
-  filter(is.na(Nearest.station.Distance.minute.)) %>%
-  group_by(Nearest.station.Name) %>%
-  summarise(count = n())
-
-# A tibble: 15 x 2
-   Nearest.station.Name count
-   <chr>                <int>
- 1 Hanazono (Takamatsu)     1
- 2 Ichinomiya               1
- 3 Kamogawa                 1
- 4 Katamoto                 1
- 5 Kawaramachi              1
- 6 Kitacho                  1
- 7 Marugame                 2
- 8 Nishimaeda               1
- 9 No_station            6643
-10 Sakaide                  3
-11 Sanjo (Takamatsu)        1
-12 Sanukimure               1
-13 Shioya (Takamatsu)       1
-14 Tadotsu                  1
-15 Takata (Takamatsu)       1
 ```
 
 NAs in Frontage.road.Breadth.m. means this real estate does not have any facing road, which is also reflected in another two variables: Frontage.road.Direction and Frontage.road.Classification.. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.

@@ -65,45 +65,60 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 
-# Complete the caculation of Transaction.price.Unit.price.m.2.
-# And obtain how many NAs are left, should be 1216
-Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
+# Exclude NAs data if Type = "Pre-owned Condominiums, etc.". Also assign "No_information" to NAs.
+Raw <- Raw %>%
+  filter(!(Type == "Pre-owned Condominiums, etc." & Region == ""))
+Raw$Region[which(Raw$Region == "")] <- "No_information"
 
-# Check if NAs of the two variables are now all 1216
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
-
-# Assign NAs to Region, Land Shape, USe, Purpose.of.Use, Building.structure, Layout
-Raw$Region[which(Raw$Region == "")] <- NA
-Raw$Land.shape[which(Raw$Land.shape == "")] <- NA
-Raw$Use[which(Raw$Use == "")] <- NA
-Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- NA
-Raw$Building.structure[which(Raw$Building.structure == "")] <- NA
-Raw$Layout[which(Raw$Layout == "")] <- NA
-
-# Check whether NAs in Nearest.station.Distance.minute. are caused by missing values in Nearest.station.Distance.Name.
+# Identify data that have NAs in both Nearest.station.Distance.minute. and Nearest.station.Distance.Name.
+# Exclude data that have nearest station but does not contain distance information
 Raw %>% 
   filter(is.na(Nearest.station.Distance.minute.)) %>%
   group_by(Nearest.station.Name) %>%
   summarise(count = n())
 
 Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
+Raw$Nearest.station.Distance.minute.[which(Raw$Nearest.station.Name == "No_station")] <- 999
+Raw <- Raw %>%
+  filter(!is.na(Nearest.station.Distance.minute.))
 
 # Check again
 Raw %>% 
-  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  filter(Nearest.station.Distance.minute. == 999) %>%
   group_by(Nearest.station.Name) %>%
   summarise(count = n())
+
+# Assign "No_information" to NAs in those variables
+Raw$Layout[which(Raw$Layout == "")] <- "No_information"
+Raw$Land.shape[which(Raw$Land.shape == "")] <- "No_information"
+Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
+Raw$Use[which(Raw$Use == "")] <- "No_information"
+Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
+
+# Complete the caculation of Transaction.price.Unit.price.m.2.
+# And obtain how many NAs are left, should be 1216
+Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
+
+# Check if the numbers of NAs in Transaction.price.Unit.price.m.2. and Area.m.2. equal to each other.
+# Remove data that contains missing values in both variables
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
+Raw <- Raw %>%
+  filter(!is.na(Raw$Transaction.price.Unit.price.m.2.) & !is.na(Raw$Area.m.2.))
 
 # Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
 length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
 
+# Assign "Nas"No_information to Frontage.road.Classification and Frontage.road.Direction
 # Replace the NAs in Frontage.road.Breadth.m. with 0
+Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- "No_information"
+Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- "No_information"
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 
-# Assign Nas to Frontage.road.Classification and Frontage.road.Direction
-Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- NA
-Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- NA
+# Assign "No_information" to missing values in City.Planing, Renovation, and Transactional.factors
+Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
+Raw$Renovation[which(Raw$Renovation == "")] <- "No_information"
+Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- "No_information"
 
 # Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
 length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
