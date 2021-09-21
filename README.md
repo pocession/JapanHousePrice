@@ -97,101 +97,151 @@ We should have 11 numeric variables. The list is below.
 There are 11 numeric variables
 ```
 ### 4.3.2 Dealing with missing values
-Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.
+Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.  
+
+We will only discuss those real estates containing houses. We first exclude data belong to land properties and deal variables one by one.
+
+* Region: Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "no_information" to them. 
+* Nearest.station.Name: this variable is related to Nearest.station.Distance.minute.. So let's identify data that contain missing values in both Nearest.station.Name and Nearest.station.Distance.minute.. We then assign "No_station" and a dummy number 999 to those data. Lastly, we exclude data that contains station names but without any distance information.
+* Transaction.price.Unit.price.m.2.: this variable is our dependent variable (Y). NAs in Transaction.price.Unit.price.m.2. have two meanings: either the value Area.m2. is lacking or the calculation is not performed. Let's complete the calculation first. Then we check whether the number of NAs left in Transaction.price.Unit.price.m.2. and in Area.m.2 equal to each other. Those data should be excluded in the analysis.
+* Frontage.road.Direction: this variable is related to other two variables: Frontage.road.Classification and Frontage.road.Breadth.m.. If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
+* Frontage: this variable is totally related to Type. Data belong to land+house contains the frontage information and only a small fraction contains missing values. In the other hand, data belong to Pre-owned Condominiums do not contain any frontage information. Let's assign 0 to all missing values.
+
+Before assigning 0:
+![Unit_price_Frontage](/Result/Unit_price_Frontage.png?raw=true)  
+
+After assigning 0:
+![Unit_price_Frontage2](/Result/Unit_price_Frontage2.png?raw=true)
+
+* Total.floor.area.m.2.: similar to Frontage, we first visualize the relationship between unit price and this variable. This variable is negatvely (but weakly) correlated to unit price. Since only a small fraction contains NAs, we assign 0 to all NAs.  
+
+Before assigning 0:
+![Unit_price_Floor_Area](/Result/Unit_price_Floor_Area.png?raw=true)  
+
+After assigning 0:
+![Unit_price_Floor_Area2](/Result/Unit_price_Floor_Area2.png?raw=true)
+* Year.of.construction: Houses built before world war II do not contain information of year of buil. We assign a dummy number 1935 to all NAs. 
+* Layout, Land.shape, building.structure, Use, Purpose.of.Use, City.Planning, Renovation, and Transactional.factors: Assign "No_information" to missing values in these three variables.
+
+We should not have any variables containing missing values.
 ```{r}
-Nblankcol <- which(sapply(Raw,function(x) any(x== "")))
+# Dealing with missing values-----------------------------------------------------------------------------------------------------
+# Check which variable contains missing values. missing values could be NA or "" (Blank).
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)
 missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
 
-There are 21 variables containing missing values
+# We don't analyze data containing no house.
+Raw <- Raw %>%
+  filter(!(Type %in% c("Agricultural Land","Forest Land","Residential Land(Land Only)")))
 
-[1] "Region"                             "Nearest.station.Name"               "Layout"                            
-[4] "Land.shape"                         "Building.structure"                 "Use"                               
-[7] "Purpose.of.Use"                     "Frontage.road.Direction"            "Frontage.road.Classification"      
-[10] "City.Planning"                      "Renovation"                         "Transactional.factors"             
-[13] "Nearest.station.Distance.minute."   "Area.m.2."                          "Transaction.price.Unit.price.m.2." 
-[16] "Frontage"                           "Total.floor.area.m.2."              "Year.of.construction"              
-[19] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."     
-```
+# Assign "No_information" to NAs.
+Raw$Region[which(Raw$Region == "")] <- "No_information"
 
-Let's deal variables one by one.
-* Region: In fact, Region and Type are related. Many NAs in Regions are related to forest land and agricultural land. Only a small fraction of NAs are related to Pre-owned Condominiums. This data will not be used in our analysis. For the remained NAs, assign "no_information" to them. 
-* Nearest.station.Name: this variable is related to Nearest.station.Distance.minute.. So let's identify data that contain missing values in both Nearest.station.Name and Nearest.station.Distance.minute.. We then assign "No_station" and a dummy number 999 to those data. Lastly, we exclude data that contains station names but without any distance information.
-* Layout, Land.shape, building.structure, Use, Purpose.of.Use: assign "No_information" to NAs.
-* Transaction.price.Unit.price.m.2.: this variable is our dependent variable (Y). NAs in Transaction.price.Unit.price.m.2. have two meanings: either the value Area.m2. is lacking or the calculation is not performed. Let's complete the calculation first. Then we check whether the number of NAs left in Transaction.price.Unit.price.m.2. and in Area.m.2 equal to each other. Those data should be excluded in the analysis.
-* Frontage.road.Direction: this variable is related to other two variables: Frontage.road.Classification and Frontage.road.Breadth.m.. If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
-* City.Planing, Renovation, and Transactional.factors: Assign "No_information" to missing values in these three variables.
-* Frontage: this variable is related to Type and Frontage.road.Direction. Data belong to land properties do not contain frontage data. We assign a dummy number 0 to data belong to land properties. Then we exclude data belong to land+buildings but without the frontage information.
+# Identify data that have NAs in both Nearest.station.Distance.minute. and Nearest.station.Distance.Name.
+# Exclude data that have nearest station but does not contain distance information
+Raw %>% 
+  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
 
+Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
+Raw$Nearest.station.Distance.minute.[which(Raw$Nearest.station.Name == "No_station")] <- 999
+Raw <- Raw %>%
+  filter(!is.na(Nearest.station.Distance.minute.))
 
-```{r}
+# Check again
+Raw %>% 
+  filter(Nearest.station.Distance.minute. == 999) %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(count = n())
 
-```
+# Complete the caculation of Transaction.price.Unit.price.m.2.
+# And obtain how many NAs are left, should be 1216
+Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
 
-NAs in Frontage.road.Breadth.m. means this real estate does not have any facing road, which is also reflected in another two variables: Frontage.road.Direction and Frontage.road.Classification.. Let's check whether number of the NAs in Frontage.road.Breadth.m. matches the number of "No facing road" in Frontage.road.Direction as well as the number of "" (Blank) in Frontage.road.Classification.. In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
+# Check if the numbers of NAs in Transaction.price.Unit.price.m.2. and Area.m.2. equal to each other.
+# Remove data that contains missing values in both variables
+length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
+Raw <- Raw %>%
+  filter(!is.na(Raw$Transaction.price.Unit.price.m.2.) & !is.na(Raw$Area.m.2.))
 
-```{r}
 # Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
 length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
 
+# Assign "No_information" to Frontage.road.Classification and Frontage.road.Direction
 # Replace the NAs in Frontage.road.Breadth.m. with 0
+Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- "No_information"
+Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- "No_information"
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 
-# Assign Nas to Frontage.road.Classification and Frontage.road.Direction
-Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- NA
-Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- NA
+# Assign "No_information" to those variables
+Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
+Raw$Renovation[which(Raw$Renovation == "")] <- "No_information"
+Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- "No_information"
+Raw$City.Planning[which(Raw$City.Planning == "")] <- "No_information"
+Raw$Layout[which(Raw$Layout == "")] <- "No_information"
+Raw$Land.shape[which(Raw$Land.shape == "")] <- "No_information"
+Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
+Raw$Use[which(Raw$Use == "")] <- "No_information"
+Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
+
+# Visualize Frontage and unit price
+p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Frontage.png"))
+dev.off()
+
+# Assign 0 to all NAs
+Raw$Frontage[is.na(Raw$Frontage)] <- 0
+p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Frontage2.png"))
+dev.off()
+
+# Visualize Total.floor.area.m.2. and unit price
+p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Floor_Area.png"))
+dev.off()
+
+# Assign 0 to all NAs
+Raw$Total.floor.area.m.2.[is.na(Raw$Total.floor.area.m.2.)] <- 0
+p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Floor_Area2.png"))
+dev.off()
 
 # Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
 length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
+# Assign 0 to these two variables.
+Raw$Maximus.Building.Coverage.Ratio...[is.na(Raw$Maximus.Building.Coverage.Ratio...)] <- 0
+Raw$Maximus.Floor.area.Ratio...[is.na(Raw$Maximus.Floor.area.Ratio...)] <- 0
 
-True
-```
-
-The variable Year.of.construction contains many NAs. But if we check it carefully, we can find out most of NAs come from the land property. If a house property (e.g. Pre-owned Condominiums) does not have the information of years of construction, it means the it was built before World War II (Before 1945). Let's assign 1935 to those properties.
-
-```{r}
 # Check the NAs in Year.of.construction
 Raw %>%
   filter(is.na(Year.of.construction)) %>%
   group_by(Type) %>%
   summarise(count = n())
 
-# A tibble: 5 x 2
-  Type                                count
-  <chr>                               <int>
-1 Agricultural Land                    4724
-2 Forest Land                          1090
-3 Pre-owned Condominiums, etc.          115
-4 Residential Land(Land and Building)  1447
-5 Residential Land(Land Only)         13859
-
 # 1935 is a fake number to those house properties built before WWII.
-Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Year.of.construction))] <- 1935
-Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building )" & is.na(Raw$Year.of.construction))] <- 1935
-Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
+Raw$Year.of.construction[which(is.na(Raw$Year.of.construction))] <- 1935
 
-# Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
-Raw %>%
-  filter(is.na(Year.of.construction)) %>%
-  group_by(Type) %>%
-  summarise(count = n())
-
-  # A tibble: 3 x 2
-  Type                        count
-  <chr>                       <int>
-1 Agricultural Land            4724
-2 Forest Land                  1090
-3 Residential Land(Land Only) 13859
+# Check whether we have any variables containing missing values now
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
+NAcol <- which(colSums(is.na(Raw)) > 0)
+missingcol<-union(names(blankcol),names(NAcol))
+cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
 ```
 
-Lastly, let's assign NAs to the last two variables, Revonation and Transactional.factors. In fact, Transactional.factors is more or less like a note. We will not use this variable during analysis.
-```{r}
-# Assigns NAs to Renovation and Transactional.factors
-Raw$Renovation[which(Raw$Renovation == "")] <- NA
-Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
-
-``` 
 ### 4.3.3 Factorize data
 Next, let's factorize variables. For some variables, if the values have ordinality, we should make it as ordinal factors. In the Layout variable, Open Floor is very rare and is only used in shops or offices. We will not analyze those data anyway.
 

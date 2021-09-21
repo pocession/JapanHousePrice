@@ -65,9 +65,11 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 
-# Exclude NAs data if Type = "Pre-owned Condominiums, etc.". Also assign "No_information" to NAs.
+# We don't analyze data containing no house.
 Raw <- Raw %>%
-  filter(!(Type == "Pre-owned Condominiums, etc." & Region == ""))
+  filter(!(Type %in% c("Agricultural Land","Forest Land","Residential Land(Land Only)")))
+
+# Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
 
 # Identify data that have NAs in both Nearest.station.Distance.minute. and Nearest.station.Distance.Name.
@@ -88,13 +90,6 @@ Raw %>%
   group_by(Nearest.station.Name) %>%
   summarise(count = n())
 
-# Assign "No_information" to NAs in those variables
-Raw$Layout[which(Raw$Layout == "")] <- "No_information"
-Raw$Land.shape[which(Raw$Land.shape == "")] <- "No_information"
-Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
-Raw$Use[which(Raw$Use == "")] <- "No_information"
-Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
-
 # Complete the caculation of Transaction.price.Unit.price.m.2.
 # And obtain how many NAs are left, should be 1216
 Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
@@ -109,19 +104,58 @@ Raw <- Raw %>%
 # Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
 length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
 
-# Assign "Nas"No_information to Frontage.road.Classification and Frontage.road.Direction
+# Assign "No_information" to Frontage.road.Classification and Frontage.road.Direction
 # Replace the NAs in Frontage.road.Breadth.m. with 0
 Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- "No_information"
 Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- "No_information"
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 
-# Assign "No_information" to missing values in City.Planing, Renovation, and Transactional.factors
+# Assign "No_information" to those variables
 Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
 Raw$Renovation[which(Raw$Renovation == "")] <- "No_information"
 Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- "No_information"
+Raw$City.Planning[which(Raw$City.Planning == "")] <- "No_information"
+Raw$Layout[which(Raw$Layout == "")] <- "No_information"
+Raw$Land.shape[which(Raw$Land.shape == "")] <- "No_information"
+Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
+Raw$Use[which(Raw$Use == "")] <- "No_information"
+Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
+
+# Visualize Frontage and unit price
+p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Frontage.png"))
+dev.off()
+
+# Assign 0 to all NAs
+Raw$Frontage[is.na(Raw$Frontage)] <- 0
+p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Frontage2.png"))
+dev.off()
+
+# Visualize Total.floor.area.m.2. and unit price
+p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Floor_Area.png"))
+dev.off()
+
+# Assign 0 to all NAs
+Raw$Total.floor.area.m.2.[is.na(Raw$Total.floor.area.m.2.)] <- 0
+p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
+# Use vars() to supply faceting variables:
+p + facet_wrap(vars(Raw$Type))
+ggsave(file.path(dir,"Result","Unit_price_Floor_Area2.png"))
+dev.off()
 
 # Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
 length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
+# Assign 0 to these two variables.
+Raw$Maximus.Building.Coverage.Ratio...[is.na(Raw$Maximus.Building.Coverage.Ratio...)] <- 0
+Raw$Maximus.Floor.area.Ratio...[is.na(Raw$Maximus.Floor.area.Ratio...)] <- 0
 
 # Check the NAs in Year.of.construction
 Raw %>%
@@ -130,19 +164,14 @@ Raw %>%
   summarise(count = n())
 
 # 1935 is a fake number to those house properties built before WWII.
-Raw$Year.of.construction[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Year.of.construction))] <- 1935
-Raw$Year.of.construction[which(Raw$Type == "Residential Land(Land and Building )" & is.na(Raw$Year.of.construction))] <- 1935
-Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
+Raw$Year.of.construction[which(is.na(Raw$Year.of.construction))] <- 1935
 
-# Check the NAs in Year.of.construction again, all NAs should be obtained only in land properties
-Raw %>%
-  filter(is.na(Year.of.construction)) %>%
-  group_by(Type) %>%
-  summarise(count = n())
-
-# Assigns NAs to Renovation and Transactional.factors
-Raw$Renovation[which(Raw$Renovation == "")] <- NA
-Raw$Transactional.factors[which(Raw$Transactional.factors == "")] <- NA
+# Check whether we have any variables containing missing values now
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
+NAcol <- which(colSums(is.na(Raw)) > 0)
+missingcol<-union(names(blankcol),names(NAcol))
+cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
 
 # Factorize data---------------------------------------------------------------------------------------------------------
 # Factorize non-ordinal variables first
