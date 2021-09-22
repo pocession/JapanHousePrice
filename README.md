@@ -120,10 +120,10 @@ Before assigning 0:
 
 After assigning 0:
 ![Unit_price_Floor_Area2](/Result/Unit_price_Floor_Area2.png?raw=true)
-* Year.of.construction: Houses built before world war II do not contain information of year of buil. We assign a dummy number 1935 to all NAs. 
+* Year.of.construction: Houses built before world war II do not contain information of year of built. We assign a dummy number 1935 to all NAs. 
 * Layout, Land.shape, building.structure, Use, Purpose.of.Use, City.Planning, Renovation, and Transactional.factors: Assign "No_information" to missing values in these three variables.
 
-We should not have any variables containing missing values.
+We should not have any variables containing missing values now.
 ```{r}
 # Dealing with missing values-----------------------------------------------------------------------------------------------------
 # Check which variable contains missing values. missing values could be NA or "" (Blank).
@@ -254,59 +254,54 @@ Raw[Factors]<-lapply(Raw[Factors],factor)
 
 # Factorize ordinal variables
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
-Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
+Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
                                                           "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
-
+```  
+Now our data looks like this. We should keep in mind that those variables containing too many levels (<53) may need to be further transformed during modeling. 
+```{r}
 str(Raw)
 
-'data.frame':	32048 obs. of  30 variables:
- $ Type                              : Factor w/ 5 levels "Agricultural Land",..: 5 3 3 3 3 3 3 5 4 3 ...
- $ Region                            : Factor w/ 4 levels "Commercial Area",..: 4 NA NA NA NA NA NA 4 4 NA ...
+'data.frame':	12066 obs. of  25 variables:
+ $ Type                              : chr  "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." ...
+ $ Region                            : chr  "No_information" "No_information" "No_information" "No_information" ...
  $ City.Town.Ward.Village.code       : Factor w/ 17 levels "37201","37202",..: 1 1 1 1 1 1 1 1 1 1 ...
- $ Prefecture                        : Factor w/ 1 level "Kagawa Prefecture": 1 1 1 1 1 1 1 1 1 1 ...
- $ City.Town.Ward.Village            : Factor w/ 17 levels "Ayagawa Town,Ayauta County",..: 14 14 14 14 14 14 14 14 14 14 ...
- $ Area                              : Factor w/ 572 levels "(No Address)",..: 3 3 3 3 3 3 3 3 3 3 ...
- $ Nearest.station.Name              : Factor w/ 101 levels "Ayagawa","Busshozan",..: 82 82 82 82 82 82 82 82 82 82 ...
- $ Nearest.station.Distance.minute.  : num  15 10 14 13 13 10 10 14 12 13 ...
- $ Transaction.price.total.          : num  2.6e+07 5.5e+06 8.3e+06 6.5e+06 6.4e+06 6.3e+06 1.3e+07 1.2e+07 8.5e+06 7.5e+06 ...
- $ Layout                            : Ord.factor w/ 19 levels "1R"<"1K"<"1DK"<..: NA 12 13 13 7 7 13 NA NA 13 ...
- $ Area.m.2.                         : num  520 55 70 60 40 55 85 160 140 60 ...
- $ Transaction.price.Unit.price.m.2. : num  50000 100000 118571 108333 160000 ...
- $ Land.shape                        : Factor w/ 9 levels "&quot;Flag-shaped&quot; etc.",..: 4 NA NA NA NA NA NA 3 8 NA ...
- $ Frontage                          : num  15.5 NA NA NA NA NA NA 11 11.5 NA ...
- $ Total.floor.area.m.2.             : num  NA NA NA NA NA NA NA NA 95 NA ...
- $ Year.of.construction              : num  NA 1935 1935 1935 1935 ...
- $ Building.structure                : Factor w/ 15 levels "B","LS","RC",..: NA 11 3 11 11 11 11 NA 2 11 ...
- $ Use                               : Factor w/ 103 levels "Factory","Factory, Office",..: NA 16 16 16 16 16 16 NA 16 16 ...
- $ Purpose.of.Use                    : Factor w/ 6 levels "Factory","House",..: NA 2 2 2 2 2 2 NA 2 2 ...
- $ Frontage.road.Direction           : Factor w/ 9 levels "East","No facing road",..: 1 NA NA NA NA NA NA 1 6 NA ...
- $ Frontage.road.Classification      : Factor w/ 14 levels "Access Road",..: 3 NA NA NA NA NA NA 3 3 NA ...
- $ Frontage.road.Breadth.m.          : num  4.5 0 0 0 0 0 0 12 4.5 0 ...
- $ City.Planning                     : Factor w/ 17 levels "","Category I Exclusively Low-story Residential Zone",..: 15 15 15 15 15 15 15 15 15 15 ...
- $ Maximus.Building.Coverage.Ratio...: int  60 60 60 60 60 60 60 60 60 60 ...
- $ Maximus.Floor.area.Ratio...       : int  200 200 200 200 200 200 200 200 200 200 ...
- $ quarter.1                         : Ord.factor w/ 4 levels "1st"<"2nd"<"3rd"<..: 4 4 4 3 1 4 4 3 3 3 ...
- $ quarter.2                         : chr  "quarter" "quarter" "quarter" "quarter" ...
- $ Year                              : num  2020 2020 2020 2020 2019 ...
- $ Renovation                        : Factor w/ 2 levels "Done","Not yet": NA 2 2 1 2 2 1 NA NA 2 ...
- $ Transactional.factors             : chr  NA NA NA NA ...
+ $ Prefecture                        : chr  "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" ...
+ $ City.Town.Ward.Village            : chr  "Takamatsu City" "Takamatsu City" "Takamatsu City" "Takamatsu City" ...
+ $ Area                              : chr  "Akanecho" "Akanecho" "Akanecho" "Akanecho" ...
+ $ Nearest.station.Name              : chr  "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" ...
+ $ Nearest.station.Distance.minute.  : num  10 14 13 13 10 10 12 13 10 14 ...
+ $ Layout                            : chr  "3DK" "3LDK" "3LDK" "2DK" ...
+ $ Transaction.price.Unit.price.m.2. : num  100000 118571 108333 160000 114545 ...
+ $ Land.shape                        : chr  "No_information" "No_information" "No_information" "No_information" ...
+ $ Frontage                          : num  0 0 0 0 0 0 11.5 0 0 0 ...
+ $ Total.floor.area.m.2.             : num  0 0 0 0 0 0 95 0 0 0 ...
+ $ Year.of.construction              : num  1990 1995 1990 1990 1990 ...
+ $ Building.structure                : chr  "SRC" "RC" "SRC" "SRC" ...
+ $ Use                               : chr  "House" "House" "House" "House" ...
+ $ Purpose.of.Use                    : chr  "House" "House" "House" "House" ...
+ $ Frontage.road.Direction           : chr  "No_information" "No_information" "No_information" "No_information" ...
+ $ Frontage.road.Classification      : chr  "No_information" "No_information" "No_information" "No_information" ...
+ $ Frontage.road.Breadth.m.          : num  0 0 0 0 0 0 4.5 0 0 0 ...
+ $ City.Planning                     : chr  "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" ...
+ $ Maximus.Building.Coverage.Ratio...: num  60 60 60 60 60 60 60 60 60 60 ...
+ $ Maximus.Floor.area.Ratio...       : num  200 200 200 200 200 200 200 200 200 200 ...
+ $ quarter.1                         : chr  "4th" "4th" "3rd" "1st" ...
+ $ Year                              : num  2020 2020 2020 2019 2018 ...
 ```
-### 4.3.5 Drop some variables
-Finally, let's drop some variables. We will use Transaction.price.Unit.price.m.2. as dependent variable, so Transaction.price.total. is not required. quarter.2 is not necessary. Renovation and Transactional.factors are also note required since most values in these two varialbes are NAs. 
+### 4.3.4 Drop some variables
+Finally, let's drop some variables. We will use Transaction.price.Unit.price.m.2. as dependent variable, so both Transaction.price.total. and Area.m.2. are not required. quarter.2 is not necessary. Renovation and Transactional.factors are also not required since these two variables contain too many missing values and could not provide any useful information.  
 
 ```{r}
 # Drop some variables ----------------------------------------------------------------------------------------------------
 # Some variables are not required for the further analysis.
-drops <- c("Transaction.price.total.","quarter.2","Renovation","Transactional.factors")
+drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")
 Raw <- Raw[ , !(names(Raw) %in% drops)]
-```
 
-```{r}
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
 cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
 
-There are 10 numeric variables, and 16 categoric variables.
+There are 9 numeric variables, and 16 categoric variables.
 ```
 
 The data wrangling part ends here. Be reminded that we still need to do one-hot encoding for non-ordinal factor variables. We will handle this in modeling section.
@@ -319,27 +314,27 @@ Transaction.price.Unit.price.m2. is our dependent variable, or Y. For simplicity
 # Visualize the transaction price-----------------------------------------------------------------------------------------
 # We only consier house price
 all <- Raw %>%
-  filter(Use == "House")
+  filter(grepl("House",Use))
 
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
-  geom_histogram(fill="blue", binwidth = 10000) 
+  geom_histogram(fill="blue", binwidth = 10000)
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 dev.off()
-```
-![Transaction.price.Unit.price.m2](/Result/Transaction.price.Unit.price.m2.png?raw=true)
 
-```{r}
-# Have a summary of Transaction.price.Unit.price.m2.
-summary_Transaction.price.Unit.price.m2. <- summary(train$Transaction.price.Unit.price.m.2.)
+summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
 summary_Transaction.price.Unit.price.m2.
 
-## Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
-##   10   30556   72727   92688  130000 1507692      13
-```
+Min. 1st Qu.  Median    Mean 3rd Qu.    Max.  
+  10   29412   69767   92448  129032 2470588
+```   
+
+![Transaction.price.Unit.price.m2](/Result/Transaction.price.Unit.price.m2.png?raw=true)
+
 ## 5.2. The correlation between numeric variables and the unit price
-We then check the unit price is affected by which numeric variables most. Apparently, the unit price is positively correlated with the year that the house was built, with a correlation coefficient of 0.5. Newer houses are more expensive, very reasonable. Interestingly, the size of the house has a negative correlation with the unit price (-0.37). It seems people prefer the smaller houses. We also find many variables are correlated, such as Maximus.Building.Coverage.Ratio... and Maximus.Floor.area.Ratio.... We will remove one of those correlated variables before modeling.
+We then check the unit price is affected by which numeric variables most. Apparently, the unit price is positively correlated with the year that the house was built, with a correlation coefficient of 0.4. Newer houses are more expensive, very reasonable. We also find Maximus.Building.Coverage.Ratio... and Maximus.Floor.area.Ratio... are mutually correlated. We remove Maximus.Building.Coverage.Ratio... because it is less correlated with unit price.
 
 ```{r}
+# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
 numericVars <- which(sapply(all, is.numeric))
 all_numVar <- all[, numericVars]
 cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
@@ -350,50 +345,55 @@ cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], d
 Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.)))
 cor_numVar <- cor_numVar[Cor, Cor]
 
-png(file.path(dir,"Result","CorrelationvarNum.png"))
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
+png(file.path(dir,"Result","CorrelationvarNum.png"))
 dev.off()
 ```
 
 ![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
 ### 5.2.1. The correlation between categorical (factor) variables and the unit price.
-We move to check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We choose the top 53 frequent stations and areas for this analysis.Finally, we need to exclude NAs from the data. We "impute" those NAs by using random forest, and yes, perform random forest again to draw the important variables from this imputed data.
+We now check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We already deal with the missing values before. Now We have to reduce the levels of Nearest.station.Name and Area. I calculate the trading frequencies of each station and area. I then  transform the names of station and area as their trading frequency. As a result, we can see the unit price is still most correlated with Year.of.construciton.
 
 ```{r}
-# Check the numeric variables
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-numericVarNames <- names(numericVars) #saving names vector for use later on
-cat('There are', length(numericVars), 'numeric variables')
+# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
+RF<- all %>%
+  filter(!is.na(Transaction.price.Unit.price.m.2.))
+set.seed(2018)
 
-There are 6 numeric variables
+# randomForest can not handle variables containing more than 53 level
+# Change the Nearest.station.Name as trading frequency of each station
+Frequency_Station <- all %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(n=n()) %>%
+  mutate(frequency=n/sum(n)) %>% 
+  select(Nearest.station.Name,frequency)
+  
+Frequency_Area <- all %>%
+  group_by(Area) %>%
+  summarise(n=n()) %>%
+  mutate(frequency=n/sum(n)) %>%
+  select(Area,frequency)
+
+RF <- RF %>%
+  left_join(Frequency_Station,by=c("Nearest.station.Name")) %>%
+  left_join(Frequency_Area,by="Area")
+
+colnames(RF)[c(25,26)] <- c("Nearest.station.Name.frequency","Area.frequency")
+
+# Run the random Forest
+quick_RF <- randomForest(x=RF[,-c(6,7,10)], y=RF[,10], ntree=100,importance=TRUE)
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
+imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
+
+ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+ggsave(file.path(dir,"Result","randomForest.png"))
+dev.off()
 ```
-We have 6 numeric variables in our Raw dataset. Now let's check the correlation beteew Transaction.price.total. and each numeric variable.
 
-```{r}
-# Check the numeric variables
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-numericVarNames <- names(numericVars) #saving names vector for use later on
-cat('There are', length(numericVars), 'numeric variables')
+![randomForest](/Result/randomForest.png?raw=true)
 
-all_numVar <- Raw[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-
-# Sort on decreasing correlations with Transaction.price.total.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
-cor_sorted
-
-# 
-# 
-#                                           [,1]
-# Transaction.price.total.            1.00000000
-# Frontage.road.Breadth.m.            0.18504503
-# Maximus.Floor.area.Ratio...        -0.05139797
-# City.Town.Ward.Village.code        -0.07525850
-# Maximus.Building.Coverage.Ratio... -0.08390417
-```
-There is only numeric variable, Frontage.road.Breadth.m., with a low correlation 
-
-# 6. Missing data, label encoding and factorizing variables
+# 6. The last wrangling process before modeling
 # Visualization of important variables
 # Feature engineering
 # Preparing data for modeling

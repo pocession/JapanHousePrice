@@ -135,7 +135,6 @@ p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point()
 p + facet_wrap(vars(Raw$Type))
 ggsave(file.path(dir,"Result","Unit_price_Frontage2.png"))
 dev.off()
-
 # Visualize Total.floor.area.m.2. and unit price
 p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
 # Use vars() to supply faceting variables:
@@ -182,26 +181,25 @@ Raw[Factors]<-lapply(Raw[Factors],factor)
 
 # Factorize ordinal variables
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
-Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
+Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
                                                           "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
 str(Raw)
 # Drop some variables ----------------------------------------------------------------------------------------------------
-# Some variables are not required for the further analysis.
-drops <- c("Transaction.price.total.","quarter.2","Renovation","Transactional.factors")
+drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")
 Raw <- Raw[ , !(names(Raw) %in% drops)]
 
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
 cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
-# Identifying numeric varialbes correlated with dependent variables ------------------------------------------------------
+
 # Visualize the transaction price-----------------------------------------------------------------------------------------
 # We only consier house price
 all <- Raw %>%
-  filter(Use == "House")
+  filter(grepl("House",Use))
 
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
   geom_histogram(fill="blue", binwidth = 10000)
+ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
 dev.off()
 
 summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
@@ -215,37 +213,53 @@ cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all 
 # Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
 cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
 # Display all correlation
-Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.)))
+Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0)))
 cor_numVar <- cor_numVar[Cor, Cor]
 
 png(file.path(dir,"Result","CorrelationvarNum.png"))
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
 dev.off()
 
+# Drop Maximus.Building.Coverage.Ratio...
+all <- all[,-22]
+
+# Drop unused levels
+all$Use <- factor(all$Use)
+
 # Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
 RF<- all %>%
   filter(!is.na(Transaction.price.Unit.price.m.2.))
 set.seed(2018)
 
-# randomForest can not handle variables containing more than 53 level, let's choose the most frequent stations and areas for this analysis. 
-# randomForest also cannot handle NAs, use rfImpute instead.
-# ntree = 100 and 300 does not differ. 
-# Using only 5000 data does not differ from using all data for randomForest. But use 3000 data makes the Variance decreased from 45% to 37%.
-RF <- RF %>%
+# randomForest can not handle variables containing more than 53 level
+# Change the Nearest.station.Name as trading frequency of each station
+Frequency_Station <- all %>%
+  group_by(Nearest.station.Name) %>%
+  summarise(n=n()) %>%
+  mutate(frequency=n/sum(n)) %>% 
+  select(Nearest.station.Name,frequency)
+  
+Frequency_Area <- all %>%
   group_by(Area) %>%
-  filter(n() > 60)
-RF$Area <- factor(RF$Area)
-RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
-RF<-as.data.frame(RF)
-RF_impute<-rfImpute(RF[,-c(11,17)],RF[,11],iter=1,ntree=300,importance=TRUE)
-quick_RF <- randomForest(x=RF_impute[,-c(1)], y=RF_impute[,1], ntree=100,importance=TRUE)
+  summarise(n=n()) %>%
+  mutate(frequency=n/sum(n)) %>%
+  select(Area,frequency)
+
+RF <- RF %>%
+  left_join(Frequency_Station,by=c("Nearest.station.Name")) %>%
+  left_join(Frequency_Area,by="Area")
+
+colnames(RF)[c(25,26)] <- c("Nearest.station.Name.frequency","Area.frequency")
+
+# Run the random Forest
+quick_RF <- randomForest(x=RF[,-c(6,7,10)], y=RF[,10], ntree=100,importance=TRUE)
 imp_RF <- importance(quick_RF)
 imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
 imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
 
-ggsave(file.path(dir,"Result","randomForest.png"))
 ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-
+ggsave(file.path(dir,"Result","randomForest.png"))
+dev.off()
 
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
