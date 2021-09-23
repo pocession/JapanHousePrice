@@ -261,6 +261,18 @@ ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_ba
 ggsave(file.path(dir,"Result","randomForest.png"))
 dev.off()
 
+# Station1 <- ggplot(Raw[!is.na(Raw$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+#   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+#   scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+#   geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3) +
+#   geom_hline(yintercept=100000, linetype="dashed", color = "red") #dashed line is media
+# Station1
+# 
+# 
+# data <- data %>% mutate(agegroup = case_when(age >= 40  & age <= 49 ~ '3',
+#                                              age >= 30  & age <= 39 ~ '2',
+#                                              age >= 20  & age <= 29 ~ '1')) # end function
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
