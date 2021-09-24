@@ -1,7 +1,7 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
 
-# Version 1.0
+# Version 2.0
 # 1. Summary
 I start this project by focusing on understanding Japanese realestate market and preacticing my data analysis skills. The EDA and modeling are documented in each section.
 
