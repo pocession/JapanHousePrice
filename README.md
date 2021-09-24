@@ -241,7 +241,6 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 ```
-
 ### 4.3.3 Factorize data
 Next, let's factorize variables. For some variables, if the values have ordinality, we should make it as ordinal factors. In the Layout variable, Open Floor is very rare and is only used in shops or offices. We will not analyze those data anyway.
 
@@ -329,7 +328,6 @@ Min. 1st Qu.  Median    Mean 3rd Qu.    Max.
 ```   
 
 ![Transaction.price.Unit.price.m2](/Result/Transaction.price.Unit.price.m2.png?raw=true)
-
 ## 5.2. The correlation between numeric variables and the unit price
 We then check the unit price is affected by which numeric variables most. Apparently, the unit price is positively correlated with the year that the house was built, with a correlation coefficient of 0.4. Newer houses are more expensive, very reasonable. We also find Maximus.Building.Coverage.Ratio... and Maximus.Floor.area.Ratio... are mutually correlated. We remove Maximus.Building.Coverage.Ratio... because it is less correlated with unit price.
 
@@ -349,39 +347,31 @@ corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = 
 png(file.path(dir,"Result","CorrelationvarNum.png"))
 dev.off()
 ```
-
 ![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
 ### 5.2.1. The correlation between categorical (factor) variables and the unit price.
-We now check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We already deal with the missing values before. Now We have to reduce the levels of Nearest.station.Name and Area. I calculate the trading frequencies of each station and area. I then  transform the names of station and area as their trading frequency. As a result, we can see the unit price is still most correlated with Year.of.construciton.
+We now check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We already deal with the missing values before. Now We have to reduce the levels of Nearest.station.Name and Area. I try to select the top 36 Areas where the house are traded most frequently. This will also reduce the nearest stations to 51. 
 
 ```{r}
-# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
 RF<- all %>%
   filter(!is.na(Transaction.price.Unit.price.m.2.))
 set.seed(2018)
 
 # randomForest can not handle variables containing more than 53 level
-# Change the Nearest.station.Name as trading frequency of each station
-Frequency_Station <- all %>%
-  group_by(Nearest.station.Name) %>%
-  summarise(n=n()) %>%
-  mutate(frequency=n/sum(n)) %>% 
-  select(Nearest.station.Name,frequency)
-  
+# select the top 50 Areas
 Frequency_Area <- all %>%
   group_by(Area) %>%
   summarise(n=n()) %>%
-  mutate(frequency=n/sum(n)) %>%
-  select(Area,frequency)
+  arrange(desc(n))
 
-RF <- RF %>%
-  left_join(Frequency_Station,by=c("Nearest.station.Name")) %>%
-  left_join(Frequency_Area,by="Area")
+RF <- all %>%
+  group_by(Area) %>%
+  filter(n()>55)
 
-colnames(RF)[c(25,26)] <- c("Nearest.station.Name.frequency","Area.frequency")
-
+RF$Area <- factor(RF$Area)
+RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
+RF<-as.data.frame(RF)
 # Run the random Forest
-quick_RF <- randomForest(x=RF[,-c(6,7,10)], y=RF[,10], ntree=100,importance=TRUE)
+quick_RF <- randomForest(x=RF[,-c(10)], y=RF[,10], ntree=100,importance=TRUE)
 imp_RF <- importance(quick_RF)
 imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
 imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
@@ -390,10 +380,20 @@ ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_ba
 ggsave(file.path(dir,"Result","randomForest.png"))
 dev.off()
 ```
-
+As a result, we can see the unit price is still largely affected by its built year. But we also identify that the unit price is affected by its nearest stations and areas. We will do more feature engineering for these two variables before modeling. 
 ![randomForest](/Result/randomForest.png?raw=true)
+# 6. Feature engineering
+Hu ~~ now we still need "transform" or "re-engineering" some variables before modeling. We will take care those variables here: Year, Year.of.Constuction, Area, and Nearest.station.Name.
+* Age: I am now creating a new variable "Age" based on "Year" and "Year.of.Construction". As you can see, there is a negative correlation between house age and its price. (Correlation = -0.400)  
+![Unit_price_age](/Result/Unit_price_age.png?raw=true)
 
-# 6. The last wrangling process before modeling
+  There are some extremely expensive houses. By taking these outliers, the correlation increase by 4.7%. (Correlation = -0.447)  
+![Unit_price_age2](/Result/Unit_price_age2.png?raw=true)  
+* Nearest.station.Name.: we can see nearest stations could be further separated based on their median unit price. I do not want over bin the stations. So let's separate names into 5 groups. The first group contains only Kawaramachi station because its relatively high price.
+![Unit_price_station](/Result/Unit_price_station.png?raw=true)
+![Unit_price_station2](/Result/Unit_price_station2.png?raw=true)
+```{r}
+```
 # Visualization of important variables
 # Feature engineering
 # Preparing data for modeling

@@ -232,27 +232,21 @@ RF<- all %>%
 set.seed(2018)
 
 # randomForest can not handle variables containing more than 53 level
-# Change the Nearest.station.Name as trading frequency of each station
-Frequency_Station <- all %>%
-  group_by(Nearest.station.Name) %>%
-  summarise(n=n()) %>%
-  mutate(frequency=n/sum(n)) %>% 
-  select(Nearest.station.Name,frequency)
-  
+# select the top 50 Areas
 Frequency_Area <- all %>%
   group_by(Area) %>%
   summarise(n=n()) %>%
-  mutate(frequency=n/sum(n)) %>%
-  select(Area,frequency)
+  arrange(desc(n))
 
-RF <- RF %>%
-  left_join(Frequency_Station,by=c("Nearest.station.Name")) %>%
-  left_join(Frequency_Area,by="Area")
+RF <- all %>%
+  group_by(Area) %>%
+  filter(n()>55)
 
-colnames(RF)[c(25,26)] <- c("Nearest.station.Name.frequency","Area.frequency")
-
+RF$Area <- factor(RF$Area)
+RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
+RF<-as.data.frame(RF)
 # Run the random Forest
-quick_RF <- randomForest(x=RF[,-c(6,7,10)], y=RF[,10], ntree=100,importance=TRUE)
+quick_RF <- randomForest(x=RF[,-c(10)], y=RF[,10], ntree=100,importance=TRUE)
 imp_RF <- importance(quick_RF)
 imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
 imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
@@ -261,18 +255,65 @@ ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_ba
 ggsave(file.path(dir,"Result","randomForest.png"))
 dev.off()
 
-# Station1 <- ggplot(Raw[!is.na(Raw$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-#   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
-#   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-#   scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-#   geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3) +
-#   geom_hline(yintercept=100000, linetype="dashed", color = "red") #dashed line is media
-# Station1
-# 
-# 
-# data <- data %>% mutate(agegroup = case_when(age >= 40  & age <= 49 ~ '3',
-#                                              age >= 30  & age <= 39 ~ '2',
-#                                              age >= 20  & age <= 29 ~ '1')) # end function
+# Feature variables ----------------------------------------------------------------------------------------------------
+# Transform to year.of.Constuction to Age
+all$Age <- all$Year - all$Year.of.construction
+cor_age_price <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
+Price_age <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_age_price,
+    x = 30, y = 1000000, size = 8, colour = "red")
+Price_age
+dev.off()
+all <- all %>%
+  filter(Transaction.price.Unit.price.m.2.< 1000000)
+cor_age_price2 <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
+Price_age2 <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_age_price2,
+           x = 30, y = 500000, size = 8, colour = "red")
+Price_age2
+ggsave(file.path(dir,"Result","Unit_price_age2.png"))
+dev.off()
+
+# Binning Station
+
+Station <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) +
+  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
+Station
+ggsave(file.path(dir,"Result","Unit_price_station.png"))
+dev.off()
+
+# Regroup Nearest.station.Name based on their median price
+all <- all %>%
+  group_by(Nearest.station.Name) %>%
+  mutate(Stationgroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 175000 ~ '5',
+                                  median(Transaction.price.Unit.price.m.2.) >= 125000 & median(Transaction.price.Unit.price.m.2.) < 175000 ~ '4',
+                                  median(Transaction.price.Unit.price.m.2.) >= 75000  & median(Transaction.price.Unit.price.m.2.) < 125000 ~ '3',
+                                  median(Transaction.price.Unit.price.m.2.) >= 25000  & median(Transaction.price.Unit.price.m.2.) < 75000 ~ '2',
+                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 25000 ~ '1'))
+
+# Check again
+Station2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Stationgroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12)) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=5) +
+  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
+Station2
+ggsave(file.path(dir,"Result","Unit_price_station2.png"))
+dev.off()
+
+all %>% 
+  filter(Stationgroup == 5) %>% 
+  group_by(Nearest.station.Name) %>% 
+  summarise(count=n())
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
