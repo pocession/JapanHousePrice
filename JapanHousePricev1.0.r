@@ -328,20 +328,51 @@ all %>%
   summarise(count=n())
 
 # Binning Area
-Area_sort <- all %>%
-  group_by(Area) %>%
-  summarise(median=median(Transaction.price.Unit.price.m.2.)) %>%
-  arrange(desc(median))
-
 Area <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Area, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 2)) +
   scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
-  geom_hline(yintercept=c(100000,200000,300000), linetype="dashed", color = "red") 
+  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
   geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) 
 Area
 ggsave(file.path(dir,"Result","Unit_price_area.png"))
 dev.off()
+
+all <- all %>%
+  group_by(Area) %>%
+  mutate(Areagroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 400000 ~ '5',
+                                  median(Transaction.price.Unit.price.m.2.) >= 300000 & median(Transaction.price.Unit.price.m.2.) < 400000 ~ '4',
+                                  median(Transaction.price.Unit.price.m.2.) >= 200000  & median(Transaction.price.Unit.price.m.2.) < 300000 ~ '3',
+                                  median(Transaction.price.Unit.price.m.2.) >= 100000  & median(Transaction.price.Unit.price.m.2.) < 200000 ~ '2',
+                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 100000 ~ '1'))
+# Check again
+Area2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Areagroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
+  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
+  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
+geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=10) 
+Area2
+ggsave(file.path(dir,"Result","Unit_price_area2.png"))
+dev.off()
+
+all %>% 
+  filter(Areagroup == 5) %>% 
+  group_by(Area) %>% 
+  summarise(count=n())
+
+# Frontage
+cor_frontage_price <- cor(all$Transaction.price.Unit.price.m.2., all$Frontage)
+Price_frontage <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Frontage, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_frontage_price,
+           x = 30, y = 1000000, size = 8, colour = "red")
+Price_frontage
+ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
+dev.off()
+
+# Prepare data for modeling ---------------------------------------------------------------------------------------------
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 

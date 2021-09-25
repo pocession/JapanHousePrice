@@ -391,13 +391,131 @@ Hu ~~ now we still need "transform" or "re-engineering" some variables before mo
 ![Unit_price_age2](/Result/Unit_price_age2.png?raw=true)  
 * IsNew: there are more than 1000 houses built and sold at the same year. I hypothesize those new houses could be sold at a higher price. After visualizing the unit price, my hypothesis is right. Therefore, I create another variable called IsNew to represent new houses.  
 ![Unit_price_IsNew](/Result/Unit_price_IsNew.png?raw=true)  
-* Nearest.station.Name.: we can see nearest stations could be further separated based on their median unit price. I do not want over bin the stations. So let's separate names into 5 groups. The first group contains only Kawaramachi station because its relatively high price.
+* Nearest.station.Name.: we can see nearest stations could be further separated based on their median unit price. I do not want over bin the stations. So let's separate names into 5 groups. The first group contains only Kawaramachi station.
 ![Unit_price_station](/Result/Unit_price_station.png?raw=true)
 ![Unit_price_station2](/Result/Unit_price_station2.png?raw=true)  
-* Area: there are more than 500 areas in our data. About half of areas contains a few trading records. 
+* Area: there are more than 500 areas in our data. Similar as stations, we will categorize areas into five groups based on their median unit price. The first group contains only three three areas.
+![Unit_price_area](/Result/Unit_price_area.png?raw=true)
+![Unit_price_area2](/Result/Unit_price_area2.png?raw=true)  
+* Frontage: the frontage has a negative correlation with the unit price. We won't perform any engineering here.
+![Unit_price_frontage](/Result/Unit_price_frontage.png?raw=true)
 ```{r}
+# Feature variables ----------------------------------------------------------------------------------------------------
+# Transform to year.of.Constuction to Age
+all$Age <- all$Year - all$Year.of.construction
+cor_age_price <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
+Price_age <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_age_price,
+    x = 30, y = 1000000, size = 8, colour = "red")
+Price_age
+dev.off()
+all <- all %>%
+  filter(Transaction.price.Unit.price.m.2.< 1000000)
+cor_age_price2 <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
+Price_age2 <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_age_price2,
+           x = 30, y = 500000, size = 8, colour = "red")
+Price_age2
+ggsave(file.path(dir,"Result","Unit_price_age2.png"))
+dev.off()
+
+# New
+all$IsNew <- ifelse(all$Year==all$Year.of.construction, 1, 0)
+table(all$IsNew)
+
+ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=as.factor(IsNew), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat='summary', fun = "median", fill='blue') +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  theme_grey(base_size = 18) +
+  geom_hline(yintercept=60000, linetype="dashed")
+ggsave(file.path(dir,"Result","Unit_price_IsNew.png"))
+dev.off()
+
+# Binning Station
+Station <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) +
+  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
+Station
+ggsave(file.path(dir,"Result","Unit_price_station.png"))
+dev.off()
+
+# Regroup Nearest.station.Name based on their median price
+all <- all %>%
+  group_by(Nearest.station.Name) %>%
+  mutate(Stationgroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 175000 ~ '5',
+                                  median(Transaction.price.Unit.price.m.2.) >= 125000 & median(Transaction.price.Unit.price.m.2.) < 175000 ~ '4',
+                                  median(Transaction.price.Unit.price.m.2.) >= 75000  & median(Transaction.price.Unit.price.m.2.) < 125000 ~ '3',
+                                  median(Transaction.price.Unit.price.m.2.) >= 25000  & median(Transaction.price.Unit.price.m.2.) < 75000 ~ '2',
+                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 25000 ~ '1'))
+
+# Check again
+Station2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Stationgroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12)) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=5) +
+  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
+Station2
+ggsave(file.path(dir,"Result","Unit_price_station2.png"))
+dev.off()
+
+all %>% 
+  filter(Stationgroup == 5) %>% 
+  group_by(Nearest.station.Name) %>% 
+  summarise(count=n())
+
+# Binning Area
+Area <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Area, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 2)) +
+  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
+  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) 
+Area
+ggsave(file.path(dir,"Result","Unit_price_area.png"))
+dev.off()
+
+all <- all %>%
+  group_by(Area) %>%
+  mutate(Areagroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 400000 ~ '5',
+                                  median(Transaction.price.Unit.price.m.2.) >= 300000 & median(Transaction.price.Unit.price.m.2.) < 400000 ~ '4',
+                                  median(Transaction.price.Unit.price.m.2.) >= 200000  & median(Transaction.price.Unit.price.m.2.) < 300000 ~ '3',
+                                  median(Transaction.price.Unit.price.m.2.) >= 100000  & median(Transaction.price.Unit.price.m.2.) < 200000 ~ '2',
+                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 100000 ~ '1'))
+# Check again
+Area2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Areagroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
+  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
+  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
+geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=10) 
+Area2
+ggsave(file.path(dir,"Result","Unit_price_area2.png"))
+dev.off()
+
+all %>% 
+  filter(Areagroup == 5) %>% 
+  group_by(Area) %>% 
+  summarise(count=n())
+
+# Frontage
+cor_frontage_price <- cor(all$Transaction.price.Unit.price.m.2., all$Frontage)
+Price_frontage <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Frontage, y=Transaction.price.Unit.price.m.2.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
+  annotate("text",label = cor_frontage_price,
+           x = 30, y = 1000000, size = 8, colour = "red")
+Price_frontage
+ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
+dev.off()
 ```
-# Visualization of important variables
-# Feature engineering
-# Preparing data for modeling
+# 7. Preparing data for modeling
 # Modeling
