@@ -7,6 +7,9 @@ library(ggrepel)
 library(corrplot)
 library(scales)
 library(randomForest)
+library(psych)
+library(caret)
+library(glmnet)
 # Loading data into R -----------------------------------------------------------------------------------------------------
 current_path = rstudioapi::getActiveDocumentContext()$path
 dir <- setwd(dirname(current_path ))
@@ -371,26 +374,97 @@ Price_frontage <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),
 Price_frontage
 ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
 dev.off()
-
-# Prepare data for modeling ---------------------------------------------------------------------------------------------
+# Prepare data for modeling --------------------------------------------------------------------------------------------------------
 # Separate train and test data -----------------------------------------------------------------------------------------------------
-# We only focus on those real estate used for house
-Raw <- Raw %>% 
-  filter(Use == "House")
-
-## 75% of the sample size
-smp_size <- floor(0.75 * nrow(Raw))
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(all))
 
 ## set the seed to make your partition reproducible
-set.seed(120)
-train_ind <- sample(seq_len(nrow(Raw)), size = smp_size)
+set.seed(108)
+train_ind <- sample(seq_len(nrow(all)), size = smp_size)
 
-train <- Raw[train_ind, ]
-test <- Raw[-train_ind, ]
+train <- all[train_ind, ]
+test <- all[-train_ind, ]
+test$Transaction.price.Unit.price.m.2. <- NA
 
-all <- Raw
+all <- rbind(train, test)
 
-# Save wrangled, train and test data into csv files
+# Save all, train and test data into csv files
 write.csv(train,file.path(dir,"Wrangled","train.csv"))
 write.csv(test,file.path(dir,"Wrangled","test.csv"))
-write.csv(Raw,file.path(dir,"Wrangled","wrangled.csv"))
+write.csv(all,file.path(dir,"Wrangled","all.csv"))
+# Drop unused variables
+dropVars <- c('Year.of.construction', 'Year', 'Nearest.station.Name', 'Area','Prefecture', 'Use')
+
+all <- all[,!(names(all) %in% dropVars)]
+all$Stationgroup <- as.numeric(all$Stationgroup)
+all$Areagroup <- as.numeric(all$Areagroup)
+
+# Check how many numeric and factor variables we have now
+# Remove non-numeric variables
+numericVars <- which(sapply(all, is.numeric))
+numericVarNames <- names(numericVars)
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.Unit.price.m.2.'))]
+DFnumeric <- all[, names(all) %in% numericVarNames]
+DFfactors <- all[, !(names(all) %in% numericVarNames)]
+DFfactors <- DFfactors[, names(DFfactors) != 'Transaction.price.Unit.price.m.2.']
+cat('There are', length(DFnumeric), 'numeric variables, and', length(DFfactors), 'factor variables.')
+
+PreNum <- preProcess(DFnumeric, method=c("center", "scale"))
+print(PreNum)
+
+DFnorm <- predict(PreNum, DFnumeric)
+dim(DFnorm)
+
+# one-hot coding
+DFdummies <- as.data.frame(model.matrix(~.-1, DFfactors))
+dim(DFdummies)
+
+# check if some values are absent in the test set
+ZerocolTest <- which(colSums(DFdummies[(nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),])+1):nrow(all),])==0)
+colnames(DFdummies[ZerocolTest])
+
+# check if some values are absent in the train set
+ZerocolTrain <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),]),])==0)
+colnames(DFdummies[ZerocolTrain])
+
+DFdummies <- DFdummies[,-ZerocolTrain] #removing predictor
+
+fewOnes <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),]),])<10)
+colnames(DFdummies[fewOnes])
+
+DFdummies <- DFdummies[,-fewOnes] #removing predictors
+dim(DFdummies)
+
+combined <- cbind(DFnorm, DFdummies) #combining all (now numeric) predictors into one dataframe 
+
+# Check the skewness of responsive variable
+skew(all$Transaction.price.Unit.price.m.2.)
+
+png(file.path(dir,"Result","skewness_unit_price.png"))
+qqnorm(all$Transaction.price.Unit.price.m.2.)
+qqline(all$Transaction.price.Unit.price.m.2.)
+dev.off()
+
+all$Transaction.price.Unit.price.m.2. <- log(all$Transaction.price.Unit.price.m.2.) #default is the natural logarithm, "+1" is not necessary as there are no 0's
+skew(all$Transaction.price.Unit.price.m.2.)
+png(file.path(dir,"Result","skewness_unit_price.2.png"))
+qqnorm(all$Transaction.price.Unit.price.m.2.)
+qqline(all$Transaction.price.Unit.price.m.2.)
+dev.off()
+
+# Composing train and test dataset
+train1 <- combined[!is.na(all$Transaction.price.Unit.price.m.2.),]
+test1 <- combined[is.na(all$Transaction.price.Unit.price.m.2.),]
+
+# Modeling, lasso -----------------------------------------------------------------------------------------------------------
+set.seed(27042018)
+my_control <-trainControl(method="cv", number=5)
+lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
+lasso_mod <- train(x=train1, y=all$Transaction.price.Unit.price.m.2.[!is.na(all$Transaction.price.Unit.price.m.2.)], method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
+lasso_mod$bestTune
+min(lasso_mod$results$RMSE)
+
+LassoPred <- predict(lasso_mod, test1)
+predictions_lasso <- exp(LassoPred) #need to reverse the log to the real values
+head(predictions_lasso)

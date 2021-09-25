@@ -518,4 +518,11 @@ ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
 dev.off()
 ```
 # 7. Preparing data for modeling
+## 7.1. Drop variables and correct the variable categories
+We now need to drop some variables in our data.  
+* Nearest.station.Name and Area: will be replaced by Stationgroup and Areagroup during modeling, respectively.
+* Year, Year.of.construction: will be replaced by Age.
+* Prefecture: in this current version, we will only analyze the house price in Kanagawa. So this variable will be droped.
+* Stationgroup and Areagroup: should be in numeric variables.  
+## 7.2. 
 # Modeling
