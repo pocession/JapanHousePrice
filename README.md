@@ -389,9 +389,12 @@ Hu ~~ now we still need "transform" or "re-engineering" some variables before mo
 
   There are some extremely expensive houses. By taking these outliers, the correlation increase by 4.7%. (Correlation = -0.447)  
 ![Unit_price_age2](/Result/Unit_price_age2.png?raw=true)  
+* IsNew: there are more than 1000 houses built and sold at the same year. I hypothesize those new houses could be sold at a higher price. After visualizing the unit price, my hypothesis is right. Therefore, I create another variable called IsNew to represent new houses.  
+![Unit_price_IsNew](/Result/Unit_price_IsNew.png?raw=true)  
 * Nearest.station.Name.: we can see nearest stations could be further separated based on their median unit price. I do not want over bin the stations. So let's separate names into 5 groups. The first group contains only Kawaramachi station because its relatively high price.
 ![Unit_price_station](/Result/Unit_price_station.png?raw=true)
-![Unit_price_station2](/Result/Unit_price_station2.png?raw=true)
+![Unit_price_station2](/Result/Unit_price_station2.png?raw=true)  
+* Area: there are more than 500 areas in our data. About half of areas contains a few trading records. 
 ```{r}
 ```
 # Visualization of important variables

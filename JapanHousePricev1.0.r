@@ -278,8 +278,20 @@ Price_age2
 ggsave(file.path(dir,"Result","Unit_price_age2.png"))
 dev.off()
 
-# Binning Station
+# New
+all$IsNew <- ifelse(all$Year==all$Year.of.construction, 1, 0)
+table(all$IsNew)
 
+ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=as.factor(IsNew), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat='summary', fun = "median", fill='blue') +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
+  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
+  theme_grey(base_size = 18) +
+  geom_hline(yintercept=60000, linetype="dashed")
+ggsave(file.path(dir,"Result","Unit_price_IsNew.png"))
+dev.off()
+
+# Binning Station
 Station <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
@@ -314,6 +326,22 @@ all %>%
   filter(Stationgroup == 5) %>% 
   group_by(Nearest.station.Name) %>% 
   summarise(count=n())
+
+# Binning Area
+Area_sort <- all %>%
+  group_by(Area) %>%
+  summarise(median=median(Transaction.price.Unit.price.m.2.)) %>%
+  arrange(desc(median))
+
+Area <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Area, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 2)) +
+  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
+  geom_hline(yintercept=c(100000,200000,300000), linetype="dashed", color = "red") 
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) 
+Area
+ggsave(file.path(dir,"Result","Unit_price_area.png"))
+dev.off()
 # Separate train and test data -----------------------------------------------------------------------------------------------------
 # We only focus on those real estate used for house
 Raw <- Raw %>% 
