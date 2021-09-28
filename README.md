@@ -1,6 +1,6 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
-### To increase the readibility, I remove all the R codes from readme file in this version. I annotate the corresponding section number in R codes. 
+### To increase the readibility, I remove all the R codes from readme file in this version. I annotate the corresponding section number in R script file instead. 
 
 # Version 2.0
 # 1. Summary
