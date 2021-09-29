@@ -464,7 +464,21 @@ lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
 lasso_mod <- train(x=train1, y=all$Transaction.price.Unit.price.m.2.[!is.na(all$Transaction.price.Unit.price.m.2.)], method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
 lasso_mod$bestTune
 min(lasso_mod$results$RMSE)
+max(lasso_mod$results$Rsquared)
 
 LassoPred <- predict(lasso_mod, test1)
 predictions_lasso <- exp(LassoPred) #need to reverse the log to the real values
 head(predictions_lasso)
+
+# Modeling, ridge -----------------------------------------------------------------------------------------------------------
+set.seed(27042018)
+my_control_ridge <-trainControl(method="cv", number=5)
+ridgeGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
+ridge_mod <- train(x=train1, y=all$Transaction.price.Unit.price.m.2.[!is.na(all$Transaction.price.Unit.price.m.2.)], method='glmnet', trControl= my_control_ridge, tuneGrid=ridgeGrid) 
+ridge_mod$bestTune
+min(ridge_mod$results$RMSE)
+max(ridge_mod$results$Rsquared)
+
+ridgePred <- predict(ridge_mod, test1)
+predictions_ridge <- exp(ridgePred) #need to reverse the log to the real values
+head(predictions_ridge)
