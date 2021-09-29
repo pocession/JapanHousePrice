@@ -470,7 +470,7 @@ LassoPred <- predict(lasso_mod, test1)
 predictions_lasso <- exp(LassoPred) #need to reverse the log to the real values
 head(predictions_lasso)
 
-lassoVarImp <- varImp(lasso_mod,scale=F)
+lassoVarImp <- varImp(lasso_mod,scale=T)
 lassoImportance <- lassoVarImp$importance
 imp_lasso <- data.frame(Variables = row.names(lassoImportance), MSE = lassoImportance[,1])
 
