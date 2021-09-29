@@ -470,6 +470,15 @@ LassoPred <- predict(lasso_mod, test1)
 predictions_lasso <- exp(LassoPred) #need to reverse the log to the real values
 head(predictions_lasso)
 
+lassoVarImp <- varImp(lasso_mod,scale=F)
+lassoImportance <- lassoVarImp$importance
+imp_lasso <- data.frame(Variables = row.names(lassoImportance), MSE = lassoImportance[,1])
+
+ggplot(imp_lasso[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
+ggsave(file.path(dir,"Result","mse_lasso.png"))
+dev.off()
+
+
 # Modeling, ridge -----------------------------------------------------------------------------------------------------------
 set.seed(27042018)
 my_control_ridge <-trainControl(method="cv", number=5)
