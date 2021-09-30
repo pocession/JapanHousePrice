@@ -1,21 +1,25 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
-### To increase the readibility, I remove all the R codes from readme file in this version. I annotate the corresponding section number in R script file instead. 
+### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead. 
 
 # Version 2.0
-# 1. Summary
-I start this project by focusing on understanding Japanese realestate market and preacticing my data analysis skills. The EDA and modeling are documented in each section.
+# 1. Hightlight of this project
+* The R-square of the current model is 70%.
+* The minimal RMSE of the current model is 0.67, means the difference between the predicted price and the real price is only 0.67 yen per mm2. 
+* This model can be applied to all districts in Kanagawa. 
+* This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
+# 2. Introduction
+I start this project by focusing on understanding Japanese realestate market and preacticing my data analysis skills. The data wrangling process and modeling are documented in each section.
 
 In this version, only data of Kanagawa prefecture is used for modeling.  
 
 * The data is collected from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet). 
 * Describe modeling methods used in this project.
 
-# 2. Files
+# 3. Files
 * Due to the large size of data files, data are not uploaded to the repository. You can download the data from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet).
 * All plots in [Result](Result/).
 
-# 3. Introduction
 # 4. Loading and exploring data
 ## 4.1. Loading required libraries
 
