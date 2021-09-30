@@ -4,26 +4,25 @@
 
 # Version 2.0
 # 1. Hightlight of this project
-* The R-square of the current model is 70%.
-* The minimal RMSE of the current model is 0.67, means the difference between the predicted price and the real price is only 0.67 yen per mm2. 
+* The R-square of the current model is 62%.
+* The minimal RMSE of the current model is 0.68, much smalled than the standard deviation in the original data set, which is 1.09.
 * This model can be applied to all districts in Kanagawa. 
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
-I start this project by focusing on understanding Japanese realestate market and preacticing my data analysis skills. The data wrangling process and modeling are documented in each section.
+I start this project to understand Japanese realestate market and to practice my data analysis skills. The data wrangling process and modeling are documented in each section. To increase the readibility, I remove most of R codes from the README file. I annotate the corresponding section number in R files instead.
 
 In this version, only data of Kanagawa prefecture is used for modeling.  
-
+# 3. Data and Files
 * The data is collected from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet). 
-* Describe modeling methods used in this project.
-
-# 3. Files
 * Due to the large size of data files, data are not uploaded to the repository. You can download the data from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet).
+* The R files are in [Script](Script/).
 * All plots in [Result](Result/).
 
 # 4. Loading and exploring data
 ## 4.1. Loading required libraries
 
-```{r, message=FALSE, warning=FALSE}
+```{r}
+library(rstudioapi)
 library(dplyr)
 library(tidyverse)
 library(ggplot2)
@@ -31,6 +30,9 @@ library(ggrepel)
 library(corrplot)
 library(scales)
 library(randomForest)
+library(psych)
+library(caret)
+library(glmnet)
 ```
 
 ## 4.2. Loading csv data into R
