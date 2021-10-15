@@ -2,10 +2,10 @@
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
 ### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead. 
 
-# Version 2.0
+# Version 3.0
 # 1. Hightlight of this project
 * The R-square of the current model is 62%.
-* The minimal RMSE of the current model is 0.68, much smalled than the standard deviation in the original data set, which is 1.09.
+* The minimal RMSE of the current model is 0.68, suggesting there is a 68% error of predicted price when compared to the real price. It needs to be furhter improved.
 * This model can be applied to all districts in Kanagawa. 
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
@@ -20,7 +20,7 @@ In this version, only data of Kanagawa prefecture is used for modeling.
 
 # 4. Loading and exploring data
 ## 4.1. Loading required libraries
-
+Packages used for this project are listed below.
 ```{r}
 library(rstudioapi)
 library(dplyr)

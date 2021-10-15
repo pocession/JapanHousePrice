@@ -1,4 +1,4 @@
-# Loading essential packages -----------------------------------------------------------------------------------------------------
+# 4.1 Loading essential packages -----------------------------------------------------------------------------------------------------
 library(rstudioapi)
 library(dplyr)
 library(tidyverse)
@@ -10,7 +10,7 @@ library(randomForest)
 library(psych)
 library(caret)
 library(glmnet)
-# Loading data into R -----------------------------------------------------------------------------------------------------
+# 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
 current_path = rstudioapi::getActiveDocumentContext()$path
 dir <- setwd(dirname(current_path ))
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
@@ -165,6 +165,8 @@ Raw %>%
   group_by(Type) %>%
   summarise(count = n())
 
+# Remove the house without information of Year.of.construction
+
 # 1935 is a fake number to those house properties built before WWII.
 Raw$Year.of.construction[which(is.na(Raw$Year.of.construction))] <- 1935
 
@@ -260,7 +262,13 @@ dev.off()
 
 # Feature variables ----------------------------------------------------------------------------------------------------
 # Transform to year.of.Constuction to Age
-all$Age <- all$Year - all$Year.of.construction
+all$Age <- as.numeric(all$Year - all$Year.of.construction)
+
+# There are some house sold earlier than it's construction so that the age is negative
+# I think they are new houses so I change the negative age to 0
+# Assign "No_information" to those variables
+all$Age[which(all$Age < 0)] <- 0
+
 cor_age_price <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
 Price_age <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
@@ -400,15 +408,23 @@ all <- all[,!(names(all) %in% dropVars)]
 all$Stationgroup <- as.numeric(all$Stationgroup)
 all$Areagroup <- as.numeric(all$Areagroup)
 
+
 # Check how many numeric and factor variables we have now
 # Remove non-numeric variables
 numericVars <- which(sapply(all, is.numeric))
 numericVarNames <- names(numericVars)
-numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.Unit.price.m.2.'))]
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.Unit.price.m.2.','IsNew','Stationgroup','Areagroup'))]
 DFnumeric <- all[, names(all) %in% numericVarNames]
 DFfactors <- all[, !(names(all) %in% numericVarNames)]
 DFfactors <- DFfactors[, names(DFfactors) != 'Transaction.price.Unit.price.m.2.']
 cat('There are', length(DFnumeric), 'numeric variables, and', length(DFfactors), 'factor variables.')
+
+# log transform the numberic variables if their distributions are skewed
+for(i in 1:ncol(DFnumeric)){
+  if (abs(skew(DFnumeric[,i]))>0.8){
+    DFnumeric[,i] <- log(DFnumeric[,i] +1)
+  }
+}
 
 PreNum <- preProcess(DFnumeric, method=c("center", "scale"))
 print(PreNum)
