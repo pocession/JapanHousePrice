@@ -36,73 +36,36 @@ library(glmnet)
 ```
 
 ## 4.2. Loading csv data into R
+In this version, I only use data from Kanagawa prefecture. There should be total 29 variables here.
 
-```{r}
-# Loading data into R -----------------------------------------------------------------------------------------------------
-current_path = rstudioapi::getActiveDocumentContext()$path
-dir <- setwd(dirname(current_path ))
-files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
-
-# No is not a variable
-Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
-Raw <- Raw[,2:ncol(Raw)]
-```
 ## 4.3. Data wrangling
-We need to wrangle data before performing the analysis. Let's wrangle numeric and character data separately. 
-### 4.3.1 Numeric data
+Before performing the analysis, the data needs to be wrangled. I first wrangle numeric and then character variables. 
+### 4.3.1 Numeric variables
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
+* "Transaction.price.total.": This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
+![Price](/Result/Price.png?raw=true)  
+* "Year": The year variable should be divided into year and quarters.
+* "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
+* "Nearest.station.Distance.minute.": This variable contains both numbers and characters and needs to be further processed. I first have a look at the data.
 ```{r}
-# Data wrangling numeric -----------------------------------------------------------------------------------------------------
-# There are some works needs to be done before we start the analysis
-# Let's check numeric data first and perform wrangling
-# Year
-Raw <- Raw %>%
-  separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
-
-# Let's do some wrangling to make some non-numeirc variables be numeric
-# Area.m.2, Nearest.station.Distance.minute., Total.floor.area.m.2., Year.of.construction, Year, should be numeric variable
-# City code is not a numeric variable
-Raw$Area.m.2. <- as.numeric(Raw$Area.m.2.)
-Raw$Total.floor.area.m.2.<- as.numeric(Raw$Total.floor.area.m.2.)
-Raw$Year.of.construction <- as.numeric(Raw$Year.of.construction)
-Raw$Year <- as.numeric(Raw$Year)
-
-# Nearest.station.Distance.minute.: needs more work to be a numeric variable
-unique(Raw$Nearest.station.Distance.minute.)
-
-index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
-index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
-index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
-index4 <- Raw$Nearest.station.Distance.minute. == "2H-"
-Raw$Nearest.station.Distance.minute.[index1] <- 60
-Raw$Nearest.station.Distance.minute.[index2] <- 90
-Raw$Nearest.station.Distance.minute.[index3] <- 120
-Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
-Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
-
-# Frontage: only needs to replace one value
-unique(Raw$Frontage)
-
-index5 <- Raw$Frontage == "50.0m or longer"
-Raw$Frontage [index5] <- 50
-Raw$Frontage <- as.numeric(Raw$Frontage)
-# City.Town.Ward.Village.code is not a numeric variable
-Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
-
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-numericVarNames <- names(numericVars) #saving names vector for use later on
-numericVarNames
-cat('There are', length(numericVars), 'numeric variables')
+[1] "15"           "10"           "14"           "13"           "12"           "29"           "30-60minutes"
+[8] "26"           "18"           "19"           "17"           "16"           "20"           "1H30-2H"     
+[15] "1H-1H30"      ""             "25"           "21"           "23"           "24"           "28"          
+[22] "6"            "4"            "9"            "7"            "2"            "8"            "5"           
+[29] "11"           "22"           "3"            "1"            "0"            "27"           "2H-"  
 ```
-We should have 11 numeric variables. The list is below.
+
+There are some data not labelled as minutes. I first transform those data by the following rule. However, when the distance of house is longer than 2h, there are no more details.  
 ```{r}
-[1] "Nearest.station.Distance.minute."   "Transaction.price.total."           "Area.m.2."                         
- [4] "Transaction.price.Unit.price.m.2."  "Frontage"                           "Total.floor.area.m.2."             
- [7] "Year.of.construction"               "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..."
-[10] "Maximus.Floor.area.Ratio..."        "Year"    
-
-There are 11 numeric variables
-```
+"30-60minutes" <45>
+"1H-1H30" <75>
+"1H30-2H" <105>
+"2H-"
+Raw$Nearest.station.Distance.minute.[index1] <- 45
+Raw$Nearest.station.Distance.minute.[index2] <- 75
+Raw$Nearest.station.Distance.minute.[index3] <- 135
+Raw$Nearest.station.Distance.minute.[index4] <- 150
+``` 
 ### 4.3.2 Dealing with missing values
 Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.  
 

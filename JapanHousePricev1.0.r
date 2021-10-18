@@ -11,22 +11,22 @@ library(psych)
 library(caret)
 library(glmnet)
 # 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
-current_path = rstudioapi::getActiveDocumentContext()$path
-dir <- setwd(dirname(current_path ))
+dir <- setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
-
-# No is not a variable
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
-Raw <- Raw[,2:ncol(Raw)]
+cat("There are", ncol(Raw), "variables")
 
-# Numeric data wrangling -----------------------------------------------------------------------------------------------------
-# There are some works needs to be done before we start the analysis
-# Let's check numeric data first and perform wrangling
+# 4.3 Numeric data wrangling -----------------------------------------------------------------------------------------------------
+# Check the distribution of the dependent variable, Transaction.price.total.
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Transaction.price.total.)) +
+  geom_histogram(fill="blue", binwidth = 10000) +
+  scale_x_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
+ggsave(file.path(dir,"Result","Price.png"))
+dev.off()
 # Year
 Raw <- Raw %>%
   separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
 
-# Let's do some wrangling to make some non-numeirc variables be numeric
 # Area.m.2, Nearest.station.Distance.minute., Total.floor.area.m.2., Year.of.construction, Year, should be numeric variable
 # City code is not a numeric variable
 Raw$Area.m.2. <- as.numeric(Raw$Area.m.2.)
@@ -41,9 +41,9 @@ index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
 index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
 index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
 index4 <- Raw$Nearest.station.Distance.minute. == "2H-"
-Raw$Nearest.station.Distance.minute.[index1] <- 60
-Raw$Nearest.station.Distance.minute.[index2] <- 90
-Raw$Nearest.station.Distance.minute.[index3] <- 120
+Raw$Nearest.station.Distance.minute.[index1] <- 45
+Raw$Nearest.station.Distance.minute.[index2] <- 75
+Raw$Nearest.station.Distance.minute.[index3] <- 105
 Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
