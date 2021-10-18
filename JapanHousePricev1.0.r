@@ -53,6 +53,10 @@ Raw$Nearest.station.Distance.minute.[index3] <- 105
 Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=as.factor(Nearest.station.Distance.minute.), y=log10(Transaction.price.total.)))+
+  geom_boxplot(col='blue') + labs(x='Nearest.station.Distance.minute.') +
+  scale_y_continuous(breaks= seq(0, 11, by=1), labels = comma)
+
 unique(Raw$Frontage)
 
 index5 <- Raw$Frontage == "50.0m or longer"

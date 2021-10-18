@@ -1,7 +1,6 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
-### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead. 
-
+### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead.
 # Version 3.0
 # 1. Hightlight of this project
 * The R-square of the current model is 62%.
@@ -13,10 +12,9 @@
 * To shorted the running time, the plotting commands in the R file are hidden. 
 * In this version, only data of Kanagawa prefecture is used for modeling.  
 # 3. Data and Files
-* The data is collected from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet). 
-* Due to the large size of data files, data are not uploaded to the repository. You can download the data from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet).
+* The data is originally collected from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet). Due to the large size of data files, data are not uploaded to the Github repository.
 * The R files are in [Script](Script/).
-* All plots in [Result](Result/).
+* All plots are in [Result](Result/).
 
 # 4. Loading and exploring data
 ## 4.1. Loading required libraries
@@ -36,7 +34,7 @@ library(glmnet)
 ```
 
 ## 4.2. Loading csv data into R
-In this version, I only use data from Kanagawa prefecture. There should be total 29 variables here.
+In this version, I only use data from Kanagawa prefecture. There should be total 29 variables in the raw data.
 
 ## 4.3. Data wrangling
 Before performing the analysis, the data needs to be wrangled. I first wrangle numeric and then character variables. 
@@ -60,7 +58,7 @@ summary(log10(Raw$Transaction.price.total.))
 [29] "11"           "22"           "3"            "1"            "0"            "27"           "2H-"  
 ```
 
-There are some data not labelled as minutes. I first transform those data by the following rule. However, when the distance of house is longer than 2h, there are no more details.  
+There are some data not labelled as minutes. I first transform those data following the below rules. However, when the distance of house is longer than 2h, there are no more details.  
 ```{r}
 "30-60minutes" <45>
 "1H-1H30" <75>
