@@ -18,11 +18,12 @@ cat("There are", ncol(Raw), "variables")
 
 # 4.3 Numeric data wrangling -----------------------------------------------------------------------------------------------------
 # Check the distribution of the dependent variable, Transaction.price.total.
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Transaction.price.total.)) +
-  geom_histogram(fill="blue", binwidth = 10000) +
-  scale_x_continuous(breaks= seq(0, 800000, by=100000), labels = comma)
-ggsave(file.path(dir,"Result","Price.png"))
-dev.off()
+summary(log10(Raw$Transaction.price.total.))
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=log10(Transaction.price.total.))) +
+#   geom_histogram(fill="blue", binwidth = 0.05) +
+#   scale_x_continuous(breaks= seq(0, 11, by=1), labels = comma)
+# ggsave(file.path(dir,"Result","Price.png"))
+# dev.off()
 # Year
 Raw <- Raw %>%
   separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
@@ -36,6 +37,11 @@ Raw$Year <- as.numeric(Raw$Year)
 
 # Nearest.station.Distance.minute.: needs more work to be a numeric variable
 unique(Raw$Nearest.station.Distance.minute.)
+
+Raw %>%
+  filter(Nearest.station.Distance.minute. == "2H-") %>%
+  group_by(Type) %>%
+  summarise(n=n())
 
 index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
 index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"

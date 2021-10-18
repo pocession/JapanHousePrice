@@ -9,9 +9,9 @@
 * This model can be applied to all districts in Kanagawa. 
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
-I start this project to understand Japanese realestate market and to practice my data analysis skills. The data wrangling process and modeling are documented in each section. To increase the readibility, I remove most of R codes from the README file. I annotate the corresponding section number in R files instead.
-
-In this version, only data of Kanagawa prefecture is used for modeling.  
+* I start this project to understand realestate market in Japan and to practice my data analysis skills. The idea behind this analysis is documented in each section of the README file. To increase the readibility, I remove most of R codes from the README file. The annotation of R codes can be in each section of the R file.
+* To shorted the running time, the plotting commands in the R file are hidden. 
+* In this version, only data of Kanagawa prefecture is used for modeling.  
 # 3. Data and Files
 * The data is collected from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet). 
 * Due to the large size of data files, data are not uploaded to the repository. You can download the data from [Land General information system](https://www.land.mlit.go.jp/webland/servlet/MainServlet).
@@ -43,6 +43,11 @@ Before performing the analysis, the data needs to be wrangled. I first wrangle n
 ### 4.3.1 Numeric variables
 Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
 * "Transaction.price.total.": This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
+```{r}
+summary(log10(Raw$Transaction.price.total.))
+##  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+## 2.000   6.447   6.845   6.752   7.176   9.799 
+```
 ![Price](/Result/Price.png?raw=true)  
 * "Year": The year variable should be divided into year and quarters.
 * "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
