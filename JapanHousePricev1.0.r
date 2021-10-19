@@ -26,6 +26,7 @@ summary(log10(Raw$Transaction.price.total.))
 #   scale_x_continuous(breaks= seq(0, 11, by=1), labels = comma)
 # ggsave(file.path(dir,"Result","Price.png"))
 # dev.off()
+
 # Year
 Raw <- Raw %>%
   separate(Transaction.period, c("quarter.1", "quarter.2", "Year"), sep = " ")
@@ -63,17 +64,10 @@ Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.
 # ggsave(file.path(dir,"Result","Price_station_distance.png"))
 # dev.off()
 
+unique(Raw$Frontage)
 index6 <- Raw$Frontage == "50.0m or longer"
 Raw$Frontage [index6] <- 50
 Raw$Frontage <- as.numeric(Raw$Frontage)
-
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log10(Transaction.price.total.)))+
-  geom_point(col='red') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 11, by=1), labels = comma) +
-  scale_x_discrete(breaks = seq(0, 50, by = 5), labels = comma)
-ggsave(file.path(dir,"Result","Price_station_distance.png"))
-dev.off()
-unique(Raw$Frontage)
 
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
@@ -83,7 +77,7 @@ numericVarNames <- names(numericVars) #saving names vector for use later on
 numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 
-# Dealing with missing values-----------------------------------------------------------------------------------------------------
+# 4.3.2 Dealing with missing values-----------------------------------------------------------------------------------------------------
 # Check which variable contains missing values. missing values could be NA or "" (Blank).
 blankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)
@@ -95,37 +89,35 @@ missingcol
 Raw <- Raw %>%
   filter(!(Type %in% c("Agricultural Land","Forest Land","Residential Land(Land Only)")))
 
+# Have an overveiw about which numeric variable is important
+all_numVar <- Raw[, numericVars]
+cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+# sort on decreasing correlations with SalePrice
+cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
+CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
+cor_numVar <- cor_numVar[CorHigh, CorHigh]
+
+corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
+
+
 # Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
 
 # Identify data that have NAs in both Nearest.station.Distance.minute. and Nearest.station.Distance.Name.
+# Note NAs in Nearest.station.Distance.minute. has been transformed to 165
 # Exclude data that have nearest station but does not contain distance information
 Raw %>% 
-  filter(is.na(Nearest.station.Distance.minute.)) %>%
+  filter(Nearest.station.Distance.minute. == 165) %>%
   group_by(Nearest.station.Name) %>%
   summarise(count = n())
 
-Raw$Nearest.station.Name[which(is.na(Raw$Nearest.station.Distance.minute.) & Raw$Nearest.station.Name == "")] <- "No_station"
-Raw$Nearest.station.Distance.minute.[which(Raw$Nearest.station.Name == "No_station")] <- 999
-Raw <- Raw %>%
-  filter(!is.na(Nearest.station.Distance.minute.))
+Raw$Nearest.station.Name[which(Raw$Nearest.station.Distance.minute. == 165 & Raw$Nearest.station.Name == "")] <- "No_station"
 
 # Check again
 Raw %>% 
-  filter(Nearest.station.Distance.minute. == 999) %>%
+  filter(Nearest.station.Distance.minute. == 165) %>%
   group_by(Nearest.station.Name) %>%
   summarise(count = n())
-
-# Complete the caculation of Transaction.price.Unit.price.m.2.
-# And obtain how many NAs are left, should be 1216
-Raw$Transaction.price.Unit.price.m.2. <- Raw$Transaction.price.total./Raw$Area.m.2.
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.)))
-
-# Check if the numbers of NAs in Transaction.price.Unit.price.m.2. and Area.m.2. equal to each other.
-# Remove data that contains missing values in both variables
-length(which(is.na(Raw$Transaction.price.Unit.price.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
-Raw <- Raw %>%
-  filter(!is.na(Raw$Transaction.price.Unit.price.m.2.) & !is.na(Raw$Area.m.2.))
 
 # Check if number of NAs in Frontage.road.Breadth.m.equals the number of "" in Frontage.road.Classification and "No facing road" in Frontage.road.Direction
 length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.road.Classification=="")) & length(which(Raw$Frontage.road.Direction=="No facing road"))
@@ -135,6 +127,23 @@ length(which(is.na(Raw$Frontage.road.Breadth.m.))) & length(which(Raw$Frontage.r
 Raw$Frontage.road.Classification[which(Raw$Frontage.road.Classification == "")] <- "No_information"
 Raw$Frontage.road.Direction[which(Raw$Frontage.road.Direction == "")] <- "No_information"
 Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
+
+# Frontage
+Raw %>%
+  filter(is.na(Frontage)) %>%
+  group_by(Type) %>%
+  summarise(n=n())
+
+# Assign different symbols to NAs in Frontage, based on their types
+Raw$Frontage[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Frontage))] <- "Condominiums"
+Raw$Frontage[which(Raw$Type == "Residential Land(Land and Building)" & is.na(Raw$Frontage))] <- "Residential_land_Building"
+
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=factor(Frontage), y=log10(Transaction.price.total.)))+
+  geom_boxplot(col='red') + labs(x='Frontage') +
+  scale_y_continuous(breaks= seq(0, 10, by=1), labels = comma)
+ggsave(file.path(dir,"Result","Price_frontage.png"))
+dev.off()
+
 
 # Assign "No_information" to those variables
 Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
