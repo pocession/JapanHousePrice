@@ -16,7 +16,9 @@ files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 cat("There are", ncol(Raw), "variables")
 
-# 4.3 Numeric data wrangling -----------------------------------------------------------------------------------------------------
+# 4.3 Data wrangling -----------------------------------------------------------------------------------------------------
+# 4.3.1 Numeric variables
+str(Raw)
 # Check the distribution of the dependent variable, Transaction.price.total.
 summary(log10(Raw$Transaction.price.total.))
 # ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=log10(Transaction.price.total.))) +
@@ -47,21 +49,32 @@ index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
 index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
 index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
 index4 <- Raw$Nearest.station.Distance.minute. == "2H-"
+index5 <- Raw$Nearest.station.Distance.minute. == ""
 Raw$Nearest.station.Distance.minute.[index1] <- 45
 Raw$Nearest.station.Distance.minute.[index2] <- 75
 Raw$Nearest.station.Distance.minute.[index3] <- 105
-Raw$Nearest.station.Distance.minute.[index4] <- 150 # This is a fake number, assign to house where it takes more than 120 minutes walking to nearest station  
+Raw$Nearest.station.Distance.minute.[index4] <- 135 
+Raw$Nearest.station.Distance.minute.[index5] <- 165
 Raw$Nearest.station.Distance.minute. <- as.numeric(Raw$Nearest.station.Distance.minute.)
 
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=as.factor(Nearest.station.Distance.minute.), y=log10(Transaction.price.total.)))+
-  geom_boxplot(col='blue') + labs(x='Nearest.station.Distance.minute.') +
-  scale_y_continuous(breaks= seq(0, 11, by=1), labels = comma)
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=as.factor(Nearest.station.Distance.minute.), y=log10(Transaction.price.total.)))+
+#   geom_boxplot(col='blue') + labs(x='Nearest.station.Distance.minute.') +
+#   scale_y_continuous(breaks= seq(0, 11, by=1), labels = comma)
+# ggsave(file.path(dir,"Result","Price_station_distance.png"))
+# dev.off()
 
+index6 <- Raw$Frontage == "50.0m or longer"
+Raw$Frontage [index6] <- 50
+Raw$Frontage <- as.numeric(Raw$Frontage)
+
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log10(Transaction.price.total.)))+
+  geom_point(col='red') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
+  scale_y_continuous(breaks= seq(0, 11, by=1), labels = comma) +
+  scale_x_discrete(breaks = seq(0, 50, by = 5), labels = comma)
+ggsave(file.path(dir,"Result","Price_station_distance.png"))
+dev.off()
 unique(Raw$Frontage)
 
-index5 <- Raw$Frontage == "50.0m or longer"
-Raw$Frontage [index5] <- 50
-Raw$Frontage <- as.numeric(Raw$Frontage)
 # City.Town.Ward.Village.code is not a numeric variable
 Raw$City.Town.Ward.Village.code <- as.factor(Raw$City.Town.Ward.Village.code)
 

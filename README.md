@@ -39,18 +39,54 @@ In this version, I only use data from Kanagawa prefecture. There should be total
 ## 4.3. Data wrangling
 Before performing the analysis, the data needs to be wrangled. I first wrangle numeric and then character variables. 
 ### 4.3.1 Numeric variables
-Let's wrangle the numeric data first. In the final, we should have 10 numeirc variables.
-* "Transaction.price.total.": This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
+Let's wrangle the numeric data first. I find some variables are actually numeric but become character after data loading. Some variables need to be further processed and transformed to numeric.
+```{r}
+str(Raw)
+
+ 'data.frame':	32048 obs. of  29 variables:
+ $ No                                : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ Type                              : chr  "Residential Land(Land Only)" "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." ...
+ $ Region                            : chr  "Residential Area" "" "" "" ...
+ $ City.Town.Ward.Village.code       : int  37201 37201 37201 37201 37201 37201 37201 37201 37201 37201 ...
+ $ Prefecture                        : chr  "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" ...
+ $ City.Town.Ward.Village            : chr  "Takamatsu City" "Takamatsu City" "Takamatsu City" "Takamatsu City" ...
+ $ Area                              : chr  "Akanecho" "Akanecho" "Akanecho" "Akanecho" ...
+ $ Nearest.station.Name              : chr  "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" ...
+ $ Nearest.station.Distance.minute.  : chr  "15" "10" "14" "13" ...
+ $ Transaction.price.total.          : num  2.6e+07 5.5e+06 8.3e+06 6.5e+06 6.4e+06 6.3e+06 1.3e+07 1.2e+07 8.5e+06 7.5e+06 ...
+ $ Layout                            : chr  "" "3DK" "3LDK" "3LDK" ...
+ $ Area.m.2.                         : chr  "520" "55" "70" "60" ...
+ $ Transaction.price.Unit.price.m.2. : int  50000 NA NA NA NA NA NA 75000 NA NA ...
+ $ Land.shape                        : chr  "Semi-rectangular Shaped" "" "" "" ...
+ $ Frontage                          : chr  "15.5" "" "" "" ...
+ $ Total.floor.area.m.2.             : chr  "" "" "" "" ...
+ $ Year.of.construction              : chr  "" "1990" "1995" "1990" ...
+ $ Building.structure                : chr  "" "SRC" "RC" "SRC" ...
+ $ Use                               : chr  "" "House" "House" "House" ...
+ $ Purpose.of.Use                    : chr  "" "House" "House" "House" ...
+ $ Frontage.road.Direction           : chr  "East" "" "" "" ...
+ $ Frontage.road.Classification      : chr  "City Road" "" "" "" ...
+ $ Frontage.road.Breadth.m.          : num  4.5 NA NA NA NA NA NA 12 4.5 NA ...
+ $ City.Planning                     : chr  "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" ...
+ $ Maximus.Building.Coverage.Ratio...: int  60 60 60 60 60 60 60 60 60 60 ...
+ $ Maximus.Floor.area.Ratio...       : int  200 200 200 200 200 200 200 200 200 200 ...
+ $ Transaction.period                : chr  "4th quarter 2020" "4th quarter 2020" "4th quarter 2020" "3rd quarter 2020" ...
+ $ Renovation                        : chr  "" "Not yet" "Not yet" "Done" ...
+ $ Transactional.factors             : chr  "" "" "" "" ...
+```
+#### "Transaction.price.total.": This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
 ```{r}
 summary(log10(Raw$Transaction.price.total.))
 ##  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ## 2.000   6.447   6.845   6.752   7.176   9.799 
 ```
 ![Price](/Result/Price.png?raw=true)  
-* "Year": The year variable should be divided into year and quarters.
-* "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
-* "Nearest.station.Distance.minute.": This variable contains both numbers and characters and needs to be further processed. I first have a look at the data.
+#### "Year": The year variable should be divided into year and quarters.
+#### "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
+#### "Nearest.station.Distance.minute."
+* This variable contains both numbers and characters and needs to be further processed. I first have a look at the data.
 ```{r}
+uniqure(Raw$Nearest.station.Distance.minute.)
 [1] "15"           "10"           "14"           "13"           "12"           "29"           "30-60minutes"
 [8] "26"           "18"           "19"           "17"           "16"           "20"           "1H30-2H"     
 [15] "1H-1H30"      ""             "25"           "21"           "23"           "24"           "28"          
@@ -58,17 +94,37 @@ summary(log10(Raw$Transaction.price.total.))
 [29] "11"           "22"           "3"            "1"            "0"            "27"           "2H-"  
 ```
 
-There are some data not labelled as minutes. I first transform those data following the below rules. However, when the distance of house is longer than 2h, there are no more details.  
+* There are some data not labelled as minutes. I first transform those data following the below rules. For house with distance longer than 2h and for houses lacking the distance information, I apply two dummy numbers. 
 ```{r}
-"30-60minutes" <45>
-"1H-1H30" <75>
-"1H30-2H" <105>
-"2H-"
+index1 <- Raw$Nearest.station.Distance.minute. == "30-60minutes"
+index2 <- Raw$Nearest.station.Distance.minute. == "1H-1H30"
+index3 <- Raw$Nearest.station.Distance.minute. == "1H30-2H"
+index4 <- Raw$Nearest.station.Distance.minute. == "2H-"
+index5 <- Raw$Nearest.station.Distance.minute. == ""
 Raw$Nearest.station.Distance.minute.[index1] <- 45
 Raw$Nearest.station.Distance.minute.[index2] <- 75
-Raw$Nearest.station.Distance.minute.[index3] <- 135
-Raw$Nearest.station.Distance.minute.[index4] <- 150
+Raw$Nearest.station.Distance.minute.[index3] <- 105
+Raw$Nearest.station.Distance.minute.[index4] <- 135 
+Raw$Nearest.station.Distance.minute.[index5] <- 165
 ``` 
+* After plotting the relationship between price and distance of station, I find Nearest.station.Distance.minute. is much like a factor variable, as the data could be clearly separate into three groups: 0min, 0-45min, and >45min. I will handle this at the final step.
+
+#### "Frontage": I replace "50.0m or longer" as 50. There are a lot of missing values here, mostly are lands. I will deal with this in the later section.
+#### "City.Town.Ward.Village.code" is not a numeric variable. I transform it as a factor variable.
+
+We should have 13 numeric variables now, but remember "No" is just an ID, not a real variable.  
+```{r}
+numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
+numericVarNames <- names(numericVars) #saving names vector for use later on
+numericVarNames
+cat('There are', length(numericVars), 'numeric variables')
+
+ [1] "No"                                 "City.Town.Ward.Village.code"        "Nearest.station.Distance.minute."  
+ [4] "Transaction.price.total."           "Area.m.2."                          "Transaction.price.Unit.price.m.2." 
+ [7] "Frontage"                           "Total.floor.area.m.2."              "Year.of.construction"              
+[10] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
+[13] "Year"                         
+```
 ### 4.3.2 Dealing with missing values
 Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.  
 
