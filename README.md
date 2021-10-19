@@ -112,22 +112,40 @@ Raw$Nearest.station.Distance.minute.[index5] <- 165
 #### "Frontage": I replace "50.0m or longer" as 50. There are a lot of missing values here, mostly are lands. I will deal with this in the later section.
 #### "City.Town.Ward.Village.code" is not a numeric variable. I transform it as a factor variable.
 
-We should have 13 numeric variables now, but remember "No" is just an ID, not a real variable.  
+There should be 12 numeric variables now. Keep in mind that "No" is just an ID, not a real variable.  
 ```{r}
 numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
 numericVarNames <- names(numericVars) #saving names vector for use later on
 numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 
- [1] "No"                                 "City.Town.Ward.Village.code"        "Nearest.station.Distance.minute."  
- [4] "Transaction.price.total."           "Area.m.2."                          "Transaction.price.Unit.price.m.2." 
- [7] "Frontage"                           "Total.floor.area.m.2."              "Year.of.construction"              
-[10] "Frontage.road.Breadth.m."           "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
-[13] "Year"                         
+ [1] "No"                                 "Nearest.station.Distance.minute."   "Transaction.price.total."          
+ [4] "Area.m.2."                          "Transaction.price.Unit.price.m.2."  "Frontage"                          
+ [7] "Total.floor.area.m.2."              "Year.of.construction"               "Frontage.road.Breadth.m."          
+[10] "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."        "Year"
+
+There are 12 numeric variables
 ```
 ### 4.3.2 Dealing with missing values
-Now we can find that missing values in variables are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. Let's start to identify NAs in numeric variables and deal with their associated values in character variables. We should have 21 variables containing missing values, which are listed below.  
+Now I move on to deal with the missing values. I find that missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
 
+```{r}
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
+NAcol <- which(colSums(is.na(Raw)) > 0)
+missingcol<-union(names(blankcol),names(NAcol))
+cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
+
+There are 20 variables containing missing values
+
+ [1] "Region"                             "Nearest.station.Name"               "Layout"                            
+ [4] "Land.shape"                         "Building.structure"                 "Use"                               
+ [7] "Purpose.of.Use"                     "Frontage.road.Direction"            "Frontage.road.Classification"      
+[10] "City.Planning"                      "Renovation"                         "Transactional.factors"             
+[13] "Area.m.2."                          "Transaction.price.Unit.price.m.2."  "Frontage"                          
+[16] "Total.floor.area.m.2."              "Year.of.construction"               "Frontage.road.Breadth.m."          
+[19] "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
+```
 We will only discuss those real estates containing houses. We first exclude data belong to land properties and deal variables one by one.
 
 * Region: Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "no_information" to them. 
