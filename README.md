@@ -146,7 +146,12 @@ There are 20 variables containing missing values
 [16] "Total.floor.area.m.2."              "Year.of.construction"               "Frontage.road.Breadth.m."          
 [19] "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
 ```
-We will only discuss those real estates containing houses. We first exclude data belong to land properties and deal variables one by one.
+I will only discuss those real estates containing houses. I first exclude data belong to land properties and deal with numeric variables. 
+
+The importance of each numeric variable is revealed as the following figure.
+![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)    
+
+I will assign either 0 or a dummy number to NAs in numeric variables. 
 
 #### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "no_information" to them. 
 #### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
