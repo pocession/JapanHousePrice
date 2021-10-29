@@ -96,9 +96,14 @@ cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all 
 cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
 CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
 cor_numVar <- cor_numVar[CorHigh, CorHigh]
-
+png(file.path(dir,"Result","CorrelationvarNum.png"))
 corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
+dev.off()
 
+# Check the relationship between "Total.floor.area.m.2." and "Transaction.price.total.".
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=Transaction.price.total.))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+  scale_y_continuous(trans="log10",breaks= seq(0, 10, by=1), labels = comma)
 
 # Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
