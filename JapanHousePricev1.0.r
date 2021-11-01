@@ -10,14 +10,15 @@ library(randomForest)
 library(psych)
 library(caret)
 library(glmnet)
-# 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
+# 4 Loading and exploring data ------
+## 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
 dir <- setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 files <- list.files(file.path(dir, "Raw"), pattern="*.csv")
 Raw <- read.csv(file.path(dir,"Raw",files[37]), stringsAsFactors = F)
 cat("There are", ncol(Raw), "variables")
 
-# 4.3 Data wrangling -----------------------------------------------------------------------------------------------------
-# 4.3.1 Numeric variables
+## 4.3 Data wrangling ------
+### 4.3.1 Numeric variables ######
 str(Raw)
 # Check the distribution of the dependent variable, Transaction.price.total.
 summary(log10(Raw$Transaction.price.total.))
@@ -77,14 +78,7 @@ numericVarNames <- names(numericVars) #saving names vector for use later on
 numericVarNames
 cat('There are', length(numericVars), 'numeric variables')
 
-# 4.3.2 Dealing with missing values-----------------------------------------------------------------------------------------------------
-# Check which variable contains missing values. missing values could be NA or "" (Blank).
-blankcol <- which(sapply(Raw,function(x) any(x== "")))
-NAcol <- which(colSums(is.na(Raw)) > 0)
-missingcol<-union(names(blankcol),names(NAcol))
-cat('There are', length(missingcol), 'variables containing missing values')
-missingcol
-
+### 4.3.2 A glimpse of numeric variables ######
 # We don't analyze data containing no house.
 Raw <- Raw %>%
   filter(!(Type %in% c("Agricultural Land","Forest Land","Residential Land(Land Only)")))
@@ -101,10 +95,19 @@ corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
 dev.off()
 
 # Check the relationship between "Total.floor.area.m.2." and "Transaction.price.total.".
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=Transaction.price.total.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
-  scale_y_continuous(trans="log10",breaks= seq(0, 10, by=1), labels = comma)
-
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Total.floor.area.m.2", y = "log(Transaction.price.total.)") +
+#   scale_y_continuous(breaks= seq(0, 20, by=5))
+# ggsave(file.path(dir,"Result","Price_floor_area.png"))
+# dev.off()
+# 5 Dealing with missing values ------
+# Check which variable contains missing values. missing values could be NA or "" (Blank).
+blankcol <- which(sapply(Raw,function(x) any(x== "")))
+NAcol <- which(colSums(is.na(Raw)) > 0)
+missingcol<-union(names(blankcol),names(NAcol))
+cat('There are', length(missingcol), 'variables containing missing values')
+missingcol
 # Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
 
@@ -136,19 +139,36 @@ Raw$Frontage.road.Breadth.m.[is.na(Raw$Frontage.road.Breadth.m.)] <- 0
 # Frontage
 Raw %>%
   filter(is.na(Frontage)) %>%
-  group_by(Type) %>%
+  group_by(Frontage.road.Breadth.m.) %>%
   summarise(n=n())
 
-# Assign different symbols to NAs in Frontage, based on their types
-Raw$Frontage[which(Raw$Type == "Pre-owned Condominiums, etc." & is.na(Raw$Frontage))] <- "Condominiums"
-Raw$Frontage[which(Raw$Type == "Residential Land(Land and Building)" & is.na(Raw$Frontage))] <- "Residential_land_Building"
-
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=factor(Frontage), y=log10(Transaction.price.total.)))+
-  geom_boxplot(col='red') + labs(x='Frontage') +
-  scale_y_continuous(breaks= seq(0, 10, by=1), labels = comma)
-ggsave(file.path(dir,"Result","Price_frontage.png"))
+# Before assign 0
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+  labs(x = "Frontage", y = "log(Transaction.price.total.)") +
+  scale_y_continuous(breaks= seq(0, 20, by=5))
+ggsave(file.path(dir,"Result","Price_frontage0.png"))
 dev.off()
 
+Raw$Frontage[which(is.na(Raw$Frontage) & Raw$Frontage.road.Breadth.m. == 0)] <- 0
+
+Raw %>%
+  filter(is.na(Frontage)) %>%
+  summarise(n=n())
+
+
+# Assign 0 to Frontage
+
+# Assign different symbols to NAs in Frontage, based on their types
+Raw$Frontage[is.na(Raw$Frontage)] <- 0
+
+# After assign 0
+ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
+  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+  labs(x = "Total.floor.area.m.2", y = "log(Transaction.price.total.)") +
+  scale_y_continuous(breaks= seq(0, 20, by=5))
+ggsave(file.path(dir,"Result","Price_frontage1.png"))
+dev.off()
 
 # Assign "No_information" to those variables
 Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"

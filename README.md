@@ -161,14 +161,11 @@ I will only discuss those real estates containing houses. I first exclude data b
 #### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
 #### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.
 #### "Frontage.road.Direction": this variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
-#### Frontage: this variable is related to another variable "Type". Data belong to land+house contains the frontage information and only a small fraction contains missing values. In the other hand, data belong to Pre-owned Condominiums do not contain any frontage information. Also, the frontage length is not related to the price. So, it seems to be reasonable to transform this variable to factor and assign different symbols to "NA" based on thier types.
+#### Frontage: this variable means how long the front of a house is connected to the road. Therefore, if there is no road connected to this house, the frontage will be zero. I frist assign 0 to NAs where the "Frontage.road.Breadth.m."　is also 0. I still have 1037 houses connected to a road but without any Frontage information. As the house price has a very small positive correlation with the frontage, I decide to give a negative value to those houses lacking frontage information. 
 
 
 Before assigning 0:
-![Unit_price_Frontage](/Result/Unit_price_Frontage.png?raw=true)  
-
-After assigning 0:
-![Unit_price_Frontage2](/Result/Unit_price_Frontage2.png?raw=true)
+![Price_Frontage0](/Result/Price_Frontage0.png?raw=true)  
 
 * Total.floor.area.m.2.: similar to Frontage, we first visualize the relationship between unit price and this variable. This variable is negatvely (but weakly) correlated to unit price. Since only a small fraction contains NAs, we assign 0 to all NAs.  
 
