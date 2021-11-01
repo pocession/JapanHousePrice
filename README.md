@@ -126,7 +126,16 @@ cat('There are', length(numericVars), 'numeric variables')
 
 There are 12 numeric variables
 ```
-### 4.3.2 Dealing with missing values
+### 4.3.2 A glimpse of numeric variables
+
+The importance of each numeric variable is revealed as the following figure.
+![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
+
+#### "Total.floor.area.m.2.": This variable is the only numeric variable with a high correlation with our dependent variable. This makes sense. Houses with more floor area are expensive.
+
+![Price_floor_area](/Result/Price_floor_area.png?raw=true)
+
+## 5 Dealing with missing values
 Now I move on to deal with the missing values. I find that missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
 
 ```{r}
@@ -146,16 +155,11 @@ There are 20 variables containing missing values
 [16] "Total.floor.area.m.2."              "Year.of.construction"               "Frontage.road.Breadth.m."          
 [19] "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
 ```
-I will only discuss those real estates containing houses. I first exclude data belong to land properties and deal with numeric variables. 
+I will only discuss those real estates containing houses. I first exclude data belong to land properties. For character variables, I will assign "No_information" to missing values. For numeric variables, I will assign either 0 or a dummy number to NAs, depending on the data properties. 
 
-The importance of each numeric variable is revealed as the following figure.
-![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)    
-
-I will assign either 0 or a dummy number to NAs in numeric variables. 
-
-#### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "no_information" to them. 
+#### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "No_information" to them. 
 #### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
-#### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is not required. I will exclude this variable from the data set later.
+#### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.
 #### "Frontage.road.Direction": this variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
 #### Frontage: this variable is related to another variable "Type". Data belong to land+house contains the frontage information and only a small fraction contains missing values. In the other hand, data belong to Pre-owned Condominiums do not contain any frontage information. Also, the frontage length is not related to the price. So, it seems to be reasonable to transform this variable to factor and assign different symbols to "NA" based on thier types.
 
