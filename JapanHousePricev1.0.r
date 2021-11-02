@@ -206,6 +206,7 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 
+## 6 Feature engineering ------
 # Factorize data---------------------------------------------------------------------------------------------------------
 # Factorize non-ordinal variables first
 Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
