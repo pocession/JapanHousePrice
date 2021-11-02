@@ -10,6 +10,7 @@ library(randomForest)
 library(psych)
 library(caret)
 library(glmnet)
+library(mice)
 # 4 Loading and exploring data ------
 ## 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
 dir <- setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
@@ -108,6 +109,10 @@ NAcol <- which(colSums(is.na(Raw)) > 0)
 missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
+png(file.path(dir,"Result","Missing.png"))
+md.pattern(Raw, rotate.names = TRUE)
+dev.off()
+
 # Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
 
@@ -142,33 +147,18 @@ Raw %>%
   group_by(Frontage.road.Breadth.m.) %>%
   summarise(n=n())
 
-# Before assign 0
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
-  labs(x = "Frontage", y = "log(Transaction.price.total.)") +
-  scale_y_continuous(breaks= seq(0, 20, by=5))
-ggsave(file.path(dir,"Result","Price_frontage0.png"))
-dev.off()
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Frontage", y = "log(Transaction.price.total.)") +
+#   scale_y_continuous(breaks= seq(0, 20, by=5))
+# ggsave(file.path(dir,"Result","Price_frontage0.png"))
+# dev.off()
 
-Raw$Frontage[which(is.na(Raw$Frontage) & Raw$Frontage.road.Breadth.m. == 0)] <- 0
-
+# Total.floor.area.m.2.
 Raw %>%
-  filter(is.na(Frontage)) %>%
+  filter(is.na(Total.floor.area.m.2.)) %>%
+  group_by(Type) %>%
   summarise(n=n())
-
-
-# Assign 0 to Frontage
-
-# Assign different symbols to NAs in Frontage, based on their types
-Raw$Frontage[is.na(Raw$Frontage)] <- 0
-
-# After assign 0
-ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
-  labs(x = "Total.floor.area.m.2", y = "log(Transaction.price.total.)") +
-  scale_y_continuous(breaks= seq(0, 20, by=5))
-ggsave(file.path(dir,"Result","Price_frontage1.png"))
-dev.off()
 
 # Assign "No_information" to those variables
 Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
@@ -181,34 +171,14 @@ Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
 Raw$Use[which(Raw$Use == "")] <- "No_information"
 Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
 
-# Visualize Frontage and unit price
-p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
-# Use vars() to supply faceting variables:
-p + facet_wrap(vars(Raw$Type))
-ggsave(file.path(dir,"Result","Unit_price_Frontage.png"))
-dev.off()
 
-# Assign 0 to all NAs
-Raw$Frontage[is.na(Raw$Frontage)] <- 0
-p <- ggplot(Raw, aes(Frontage,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
-# Use vars() to supply faceting variables:
-p + facet_wrap(vars(Raw$Type))
-ggsave(file.path(dir,"Result","Unit_price_Frontage2.png"))
-dev.off()
 # Visualize Total.floor.area.m.2. and unit price
-p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
-# Use vars() to supply faceting variables:
-p + facet_wrap(vars(Raw$Type))
-ggsave(file.path(dir,"Result","Unit_price_Floor_Area.png"))
-dev.off()
-
-# Assign 0 to all NAs
-Raw$Total.floor.area.m.2.[is.na(Raw$Total.floor.area.m.2.)] <- 0
-p <- ggplot(Raw, aes(Total.floor.area.m.2.,Transaction.price.Unit.price.m.2.)) + geom_point() + ylim(0,1e+6)
-# Use vars() to supply faceting variables:
-p + facet_wrap(vars(Raw$Type))
-ggsave(file.path(dir,"Result","Unit_price_Floor_Area2.png"))
-dev.off()
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Floor area", y = "log(Transaction.price.total.)") +
+#   scale_y_continuous(breaks= seq(0, 20, by=5))
+# ggsave(file.path(dir,"Result","Price_floor_area.png"))
+# dev.off()
 
 # Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
 length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
@@ -227,6 +197,8 @@ Raw %>%
 # 1935 is a fake number to those house properties built before WWII.
 Raw$Year.of.construction[which(is.na(Raw$Year.of.construction))] <- 1935
 
+Raw <- select(Raw, -c("Transaction.price.Unit.price.m.2.","Frontage","Renovation","Transactional.factors","quarter.2"))
+Raw <- na.omit(Raw)
 # Check whether we have any variables containing missing values now
 blankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)

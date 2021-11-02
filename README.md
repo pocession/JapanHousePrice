@@ -155,31 +155,37 @@ There are 20 variables containing missing values
 [16] "Total.floor.area.m.2."              "Year.of.construction"               "Frontage.road.Breadth.m."          
 [19] "Maximus.Building.Coverage.Ratio..." "Maximus.Floor.area.Ratio..."       
 ```
+
+Let's also check the distribution of missing values among each variables. As we can see, "Transaction.price.Unit.price.m.2." contains a lot of missing values. "Frontage.road.Breadth.m.", "Frontage" and "Total.floor.area.m.2." also contains a lot of missing values. We will start to deal with each variables and their missing values.
+![Missing](/Result/Missing.png?raw=true)  
 I will only discuss those real estates containing houses. I first exclude data belong to land properties. For character variables, I will assign "No_information" to missing values. For numeric variables, I will assign either 0 or a dummy number to NAs, depending on the data properties. 
 
-#### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "No_information" to them. 
-#### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
-#### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.
-#### "Frontage.road.Direction": this variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.
-#### Frontage: this variable means how long the front of a house is connected to the road. Therefore, if there is no road connected to this house, the frontage will be zero. I frist assign 0 to NAs where the "Frontage.road.Breadth.m."　is also 0. I still have 1037 houses connected to a road but without any Frontage information. As the house price has a very small positive correlation with the frontage, I decide to give a negative value to those houses lacking frontage information. 
+* #### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "No_information" to them. 
 
+* #### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
 
-Before assigning 0:
+* #### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.  
+
+* #### "Frontage.road.Direction": this variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.  
+
+* #### Frontage: This variable means how long the front of a house is connected to the road. There are total 3053 data containing missing values. The missing value may be because no road connected to this house. There are total 2016 data falling in this category and 1037 NAs are still remained. As I have no idea why these 1037 data are missing, it is not safe to impute or delete those data. As the correlation of this variable with the price is very low, I decide not to include this variable when building model in this version. At least, there are already three variables related to the road:  "Frontage.road.Breadth.m.", "Frontage.road.Direction", and "Frontage.road.Classification".  
+
+Price and Frontage:
 ![Price_Frontage0](/Result/Price_Frontage0.png?raw=true)  
 
-* Total.floor.area.m.2.: similar to Frontage, we first visualize the relationship between unit price and this variable. This variable is negatvely (but weakly) correlated to unit price. Since only a small fraction contains NAs, we assign 0 to all NAs.  
+* #### "Total.floor.area.m.2.": This is the most important predictor. Since I have no idea why the missing values exist, it is danger to include and impute any other numbers to missing values. I decide to delete all data containing missing values at this version.  
 
-Before assigning 0:
-![Unit_price_Floor_Area](/Result/Unit_price_Floor_Area.png?raw=true)  
+Price and floor area:
+![Price_floor_area](/Result/Price_floor_area.png?raw=true)  
 
-After assigning 0:
-![Unit_price_Floor_Area2](/Result/Unit_price_Floor_Area2.png?raw=true)
-* Year.of.construction: Houses built before world war II do not contain information of year of built. We assign a dummy number 1935 to all NAs. 
-* Layout, Land.shape, building.structure, Use, Purpose.of.Use, City.Planning, Renovation, and Transactional.factors: Assign "No_information" to missing values in these three variables.
+* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": missing values in there two variables are same. I directly assign 0 to mising values to these two variables. 
+
+* #### "Year.of.construction": Houses built before world war II do not contain information of year of built. We assign a dummy number 1935 to all NAs. 
+* #### "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning": Assign "No_information" to missing values in these three variables.  
+* #### "Renovation", and "Transactional.factors": These two variables contain too many NAs and not useful. I remove these two variables in modeling. 
 
 We should not have any variables containing missing values now.
 ```{r}
-# Dealing with missing values-----------------------------------------------------------------------------------------------------
 # Check which variable contains missing values. missing values could be NA or "" (Blank).
 blankcol <- which(sapply(Raw,function(x) any(x== "")))
 NAcol <- which(colSums(is.na(Raw)) > 0)
