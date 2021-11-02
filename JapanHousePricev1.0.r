@@ -96,10 +96,10 @@ corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
 dev.off()
 
 # Check the relationship between "Total.floor.area.m.2." and "Transaction.price.total.".
-# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log(Transaction.price.total.)))+
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log10(Transaction.price.total.)))+
 #   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
 #   labs(x = "Total.floor.area.m.2", y = "log(Transaction.price.total.)") +
-#   scale_y_continuous(breaks= seq(0, 20, by=5))
+#   ylim(0,10)
 # ggsave(file.path(dir,"Result","Price_floor_area.png"))
 # dev.off()
 # 5 Dealing with missing values ------
@@ -147,18 +147,31 @@ Raw %>%
   group_by(Frontage.road.Breadth.m.) %>%
   summarise(n=n())
 
-# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log(Transaction.price.total.)))+
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Frontage, y=log10(Transaction.price.total.)))+
 #   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
 #   labs(x = "Frontage", y = "log(Transaction.price.total.)") +
-#   scale_y_continuous(breaks= seq(0, 20, by=5))
+#   ylim(0,10)
 # ggsave(file.path(dir,"Result","Price_frontage0.png"))
 # dev.off()
 
 # Total.floor.area.m.2.
+Raw$Total.floor.area.m.2. <- ifelse(is.na(Raw$Total.floor.area.m.2.), Raw$Area.m.2., Raw$Total.floor.area.m.2.)
+
+# check
+length(which(is.na(Raw$Total.floor.area.m.2.))) & length(which(is.na(Raw$Area.m.2.)))
+
 Raw %>%
   filter(is.na(Total.floor.area.m.2.)) %>%
   group_by(Type) %>%
   summarise(n=n())
+
+# visualize the price and floor area again
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log10(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Total.floor.area.m.2.", y = "log(Transaction.price.total.)") +
+#   ylim(0,10)
+# ggsave(file.path(dir,"Result","Price_floor_area2.png"))
+# dev.off()
 
 # Assign "No_information" to those variables
 Raw$Renovation[which(Raw$City.Planing == "")] <- "No_information"
@@ -171,28 +184,25 @@ Raw$Building.structure[which(Raw$Building.structure == "")] <- "No_information"
 Raw$Use[which(Raw$Use == "")] <- "No_information"
 Raw$Purpose.of.Use[which(Raw$Purpose.of.Use == "")] <- "No_information"
 
-
-# Visualize Total.floor.area.m.2. and unit price
-# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log(Transaction.price.total.)))+
-#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
-#   labs(x = "Floor area", y = "log(Transaction.price.total.)") +
-#   scale_y_continuous(breaks= seq(0, 20, by=5))
-# ggsave(file.path(dir,"Result","Price_floor_area.png"))
-# dev.off()
-
 # Check if number of NAs in Maximus.Building.Coverage.Ratio... and in Maximus.Floor.area.Ratio... are equal
 length(which(is.na(Raw$Maximus.Building.Coverage.Ratio...))) & length(which(is.na(Raw$Maximus.Floor.area.Ratio...)))
 # Assign 0 to these two variables.
 Raw$Maximus.Building.Coverage.Ratio...[is.na(Raw$Maximus.Building.Coverage.Ratio...)] <- 0
 Raw$Maximus.Floor.area.Ratio...[is.na(Raw$Maximus.Floor.area.Ratio...)] <- 0
 
+# Visualize Maximus.Building.Coverage.Ratio... and price
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(Maximus.Building.Coverage.Ratio..., y=log10(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Max Building coverage ratio", y = "log(Transaction.price.total.)") +
+#   ylim(0,10)
+# ggsave(file.path(dir,"Result","Price_building_coverage.png"))
+# dev.off()
 # Check the NAs in Year.of.construction
+
 Raw %>%
   filter(is.na(Year.of.construction)) %>%
   group_by(Type) %>%
   summarise(count = n())
-
-# Remove the house without information of Year.of.construction
 
 # 1935 is a fake number to those house properties built before WWII.
 Raw$Year.of.construction[which(is.na(Raw$Year.of.construction))] <- 1935
@@ -206,18 +216,33 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 
-## 6 Feature engineering ------
-# Factorize data---------------------------------------------------------------------------------------------------------
-# Factorize non-ordinal variables first
+# 6 Feature engineering ------
+## 6.1 Factorize data ######
+### 6.1.1 Factorize character variables ######
 Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
              "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
-             "City.Planning","Renovation")
+             "City.Planning")
+
 Raw[Factors]<-lapply(Raw[Factors],factor)
 
-# Factorize ordinal variables
+ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(as.factor(Layout), log10(Transaction.price.total.), FUN=median), y=log10(Transaction.price.total.))) +
+  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Layout', y='Median price') +
+  ylim(0,10) +
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2)
+
+ggsave(file.path(dir,"Result","Unit_price_station.png"))
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
 Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
                                                           "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
+
+### 6.1.1 Factorize non-ordinal variables first ######
+Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
+             "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
+             "City.Planning")
+
+Raw[Factors]<-lapply(Raw[Factors],factor)
+
+
 str(Raw)
 # Drop some variables ----------------------------------------------------------------------------------------------------
 drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")

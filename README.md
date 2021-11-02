@@ -31,6 +31,7 @@ library(randomForest)
 library(psych)
 library(caret)
 library(glmnet)
+library(mice)
 ```
 
 ## 4.2. Loading csv data into R
@@ -135,7 +136,7 @@ The importance of each numeric variable is revealed as the following figure.
 
 ![Price_floor_area](/Result/Price_floor_area.png?raw=true)
 
-## 5 Dealing with missing values
+# 5 Dealing with missing values
 Now I move on to deal with the missing values. I find that missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
 
 ```{r}
@@ -173,12 +174,15 @@ I will only discuss those real estates containing houses. I first exclude data b
 Price and Frontage:
 ![Price_Frontage0](/Result/Price_Frontage0.png?raw=true)  
 
-* #### "Total.floor.area.m.2.": This is the most important predictor. Since I have no idea why the missing values exist, it is danger to include and impute any other numbers to missing values. I decide to delete all data containing missing values at this version.  
+* #### "Total.floor.area.m.2.": This is the most important predictor. For apartment and house containing only one floor, the floor area equals to it area. Therefore, I just copy the value of "Area" to this variable and omit those data containing missing values. Now the correlation is more clear.
 
-Price and floor area:
-![Price_floor_area](/Result/Price_floor_area.png?raw=true)  
+Price and floor area (new):
+![Price_floor_area2](/Result/Price_floor_area2.png?raw=true)  
 
-* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": missing values in there two variables are same. I directly assign 0 to mising values to these two variables. 
+* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": missing values in there two variables are same. I directly assign 0 to mising values to these two variables. After assign 0, we can notice that the data should be divided into two groups: coverage ratio is 0 and not 0. Two groups have different median of price. I will deal with this later. 
+
+Price and buidling coverage ratio:
+![Price_building_coverage](/Result/Price_building_coverage.png?raw=true)  
 
 * #### "Year.of.construction": Houses built before world war II do not contain information of year of built. We assign a dummy number 1935 to all NAs. 
 * #### "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning": Assign "No_information" to missing values in these three variables.  
@@ -195,290 +199,7 @@ missingcol
 
 There are 0 variables containing missing values
 ```
-## 6 Feature engineering
-
-### 4.3.3 Factorize data
-Next, let's factorize variables. For some variables, if the values have ordinality, we should make it as ordinal factors. In the Layout variable, Open Floor is very rare and is only used in shops or offices. We will not analyze those data anyway.
-
-```{r}
-# Factorize non-ordinal variables first
-Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
-             "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
-             "City.Planning","Renovation")
-Raw[Factors]<-lapply(Raw[Factors],factor)
-
-# Factorize ordinal variables
-Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
-Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
-                                                          "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
-```  
-Now our data looks like this. We should keep in mind that those variables containing too many levels (<53) may need to be further transformed during modeling. 
-```{r}
-str(Raw)
-
-'data.frame':	12066 obs. of  25 variables:
- $ Type                              : chr  "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." "Pre-owned Condominiums, etc." ...
- $ Region                            : chr  "No_information" "No_information" "No_information" "No_information" ...
- $ City.Town.Ward.Village.code       : Factor w/ 17 levels "37201","37202",..: 1 1 1 1 1 1 1 1 1 1 ...
- $ Prefecture                        : chr  "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" "Kagawa Prefecture" ...
- $ City.Town.Ward.Village            : chr  "Takamatsu City" "Takamatsu City" "Takamatsu City" "Takamatsu City" ...
- $ Area                              : chr  "Akanecho" "Akanecho" "Akanecho" "Akanecho" ...
- $ Nearest.station.Name              : chr  "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" "Showacho (Kagawa)" ...
- $ Nearest.station.Distance.minute.  : num  10 14 13 13 10 10 12 13 10 14 ...
- $ Layout                            : chr  "3DK" "3LDK" "3LDK" "2DK" ...
- $ Transaction.price.Unit.price.m.2. : num  100000 118571 108333 160000 114545 ...
- $ Land.shape                        : chr  "No_information" "No_information" "No_information" "No_information" ...
- $ Frontage                          : num  0 0 0 0 0 0 11.5 0 0 0 ...
- $ Total.floor.area.m.2.             : num  0 0 0 0 0 0 95 0 0 0 ...
- $ Year.of.construction              : num  1990 1995 1990 1990 1990 ...
- $ Building.structure                : chr  "SRC" "RC" "SRC" "SRC" ...
- $ Use                               : chr  "House" "House" "House" "House" ...
- $ Purpose.of.Use                    : chr  "House" "House" "House" "House" ...
- $ Frontage.road.Direction           : chr  "No_information" "No_information" "No_information" "No_information" ...
- $ Frontage.road.Classification      : chr  "No_information" "No_information" "No_information" "No_information" ...
- $ Frontage.road.Breadth.m.          : num  0 0 0 0 0 0 4.5 0 0 0 ...
- $ City.Planning                     : chr  "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" "Quasi-industrial Zone" ...
- $ Maximus.Building.Coverage.Ratio...: num  60 60 60 60 60 60 60 60 60 60 ...
- $ Maximus.Floor.area.Ratio...       : num  200 200 200 200 200 200 200 200 200 200 ...
- $ quarter.1                         : chr  "4th" "4th" "3rd" "1st" ...
- $ Year                              : num  2020 2020 2020 2019 2018 ...
-```
-### 4.3.4 Drop some variables
-Finally, let's drop some variables. We will use Transaction.price.Unit.price.m.2. as dependent variable, so both Transaction.price.total. and Area.m.2. are not required. quarter.2 is not necessary. Renovation and Transactional.factors are also not required since these two variables contain too many missing values and could not provide any useful information.  
-
-```{r}
-# Drop some variables ----------------------------------------------------------------------------------------------------
-# Some variables are not required for the further analysis.
-drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")
-Raw <- Raw[ , !(names(Raw) %in% drops)]
-
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
-cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
-
-There are 9 numeric variables, and 16 categoric variables.
-```
-
-The data wrangling part ends here. Be reminded that we still need to do one-hot encoding for non-ordinal factor variables. We will handle this in modeling section.
-
-# 5. Exploring variables
-## 5.1. The depenent variable, Transaction.price.Unit.price.m2. (Unit price)
-Transaction.price.Unit.price.m2. is our dependent variable, or Y. For simplicity, we will call it as unit price from now. Let's check the distribution first. Apparently the distribution is right skewed and it is because only a few real estates are transacted with high prices. Those data are so0called outliers. Let's keep the data now but will remove those data before modeling.
-
-```{r}
-# Visualize the transaction price-----------------------------------------------------------------------------------------
-# We only consier house price
-all <- Raw %>%
-  filter(grepl("House",Use))
-
-ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
-  geom_histogram(fill="blue", binwidth = 10000)
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
-dev.off()
-
-summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
-summary_Transaction.price.Unit.price.m2.
-
-Min. 1st Qu.  Median    Mean 3rd Qu.    Max.  
-  10   29412   69767   92448  129032 2470588
-```   
-
-![Transaction.price.Unit.price.m2](/Result/Transaction.price.Unit.price.m2.png?raw=true)
-## 5.2. The correlation between numeric variables and the unit price
-We then check the unit price is affected by which numeric variables most. Apparently, the unit price is positively correlated with the year that the house was built, with a correlation coefficient of 0.4. Newer houses are more expensive, very reasonable. We also find Maximus.Building.Coverage.Ratio... and Maximus.Floor.area.Ratio... are mutually correlated. We remove Maximus.Building.Coverage.Ratio... because it is less correlated with unit price.
-
-```{r}
-# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
-numericVars <- which(sapply(all, is.numeric))
-all_numVar <- all[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-
-# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
-# Display all correlation
-Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.)))
-cor_numVar <- cor_numVar[Cor, Cor]
-
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-png(file.path(dir,"Result","CorrelationvarNum.png"))
-dev.off()
-```
-![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
-### 5.2.1. The correlation between categorical (factor) variables and the unit price.
-We now check the correlation between categorical variables (factor variables) and the unit price with a method called random forest. However, random forest cannot handle variables with NAs, either factor variables with more than 53 levels. We already deal with the missing values before. Now We have to reduce the levels of Nearest.station.Name and Area. I try to select the top 36 Areas where the house are traded most frequently. This will also reduce the nearest stations to 51. 
-
-```{r}
-RF<- all %>%
-  filter(!is.na(Transaction.price.Unit.price.m.2.))
-set.seed(2018)
-
-# randomForest can not handle variables containing more than 53 level
-# select the top 50 Areas
-Frequency_Area <- all %>%
-  group_by(Area) %>%
-  summarise(n=n()) %>%
-  arrange(desc(n))
-
-RF <- all %>%
-  group_by(Area) %>%
-  filter(n()>55)
-
-RF$Area <- factor(RF$Area)
-RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
-RF<-as.data.frame(RF)
-# Run the random Forest
-quick_RF <- randomForest(x=RF[,-c(10)], y=RF[,10], ntree=100,importance=TRUE)
-imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
-imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
-
-ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-ggsave(file.path(dir,"Result","randomForest.png"))
-dev.off()
-```
-As a result, we can see the unit price is still largely affected by its built year. But we also identify that the unit price is affected by its nearest stations and areas. We will do more feature engineering for these two variables before modeling. 
-![randomForest](/Result/randomForest.png?raw=true)
-# 6. Feature engineering
-Hu ~~ now we still need "transform" or "re-engineering" some variables before modeling. We will take care those variables here: Year, Year.of.Constuction, Area, and Nearest.station.Name.
-* Age: I am now creating a new variable "Age" based on "Year" and "Year.of.Construction". As you can see, there is a negative correlation between house age and its price. (Correlation = -0.400)  
-![Unit_price_age](/Result/Unit_price_age.png?raw=true)
-
-  There are some extremely expensive houses. By taking these outliers, the correlation increase by 4.7%. (Correlation = -0.447)  
-![Unit_price_age2](/Result/Unit_price_age2.png?raw=true)  
-* IsNew: there are more than 1000 houses built and sold at the same year. I hypothesize those new houses could be sold at a higher price. After visualizing the unit price, my hypothesis is right. Therefore, I create another variable called IsNew to represent new houses.  
-![Unit_price_IsNew](/Result/Unit_price_IsNew.png?raw=true)  
-* Nearest.station.Name.: we can see nearest stations could be further separated based on their median unit price. I do not want over bin the stations. So let's separate names into 5 groups. The first group contains only Kawaramachi station.
-![Unit_price_station](/Result/Unit_price_station.png?raw=true)
-![Unit_price_station2](/Result/Unit_price_station2.png?raw=true)  
-* Area: there are more than 500 areas in our data. Similar as stations, we will categorize areas into five groups based on their median unit price. The first group contains only three three areas.
-![Unit_price_area](/Result/Unit_price_area.png?raw=true)
-![Unit_price_area2](/Result/Unit_price_area2.png?raw=true)  
-* Frontage: the frontage has a negative correlation with the unit price. We won't perform any engineering here.
-![Unit_price_frontage](/Result/Unit_price_frontage.png?raw=true)
-```{r}
-# Feature variables ----------------------------------------------------------------------------------------------------
-# Transform to year.of.Constuction to Age
-all$Age <- all$Year - all$Year.of.construction
-cor_age_price <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
-Price_age <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_age_price,
-    x = 30, y = 1000000, size = 8, colour = "red")
-Price_age
-dev.off()
-all <- all %>%
-  filter(Transaction.price.Unit.price.m.2.< 1000000)
-cor_age_price2 <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
-Price_age2 <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_age_price2,
-           x = 30, y = 500000, size = 8, colour = "red")
-Price_age2
-ggsave(file.path(dir,"Result","Unit_price_age2.png"))
-dev.off()
-
-# New
-all$IsNew <- ifelse(all$Year==all$Year.of.construction, 1, 0)
-table(all$IsNew)
-
-ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=as.factor(IsNew), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat='summary', fun = "median", fill='blue') +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  theme_grey(base_size = 18) +
-  geom_hline(yintercept=60000, linetype="dashed")
-ggsave(file.path(dir,"Result","Unit_price_IsNew.png"))
-dev.off()
-
-# Binning Station
-Station <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) +
-  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
-Station
-ggsave(file.path(dir,"Result","Unit_price_station.png"))
-dev.off()
-
-# Regroup Nearest.station.Name based on their median price
-all <- all %>%
-  group_by(Nearest.station.Name) %>%
-  mutate(Stationgroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 175000 ~ '5',
-                                  median(Transaction.price.Unit.price.m.2.) >= 125000 & median(Transaction.price.Unit.price.m.2.) < 175000 ~ '4',
-                                  median(Transaction.price.Unit.price.m.2.) >= 75000  & median(Transaction.price.Unit.price.m.2.) < 125000 ~ '3',
-                                  median(Transaction.price.Unit.price.m.2.) >= 25000  & median(Transaction.price.Unit.price.m.2.) < 75000 ~ '2',
-                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 25000 ~ '1'))
-
-# Check again
-Station2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Stationgroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12)) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=5) +
-  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
-Station2
-ggsave(file.path(dir,"Result","Unit_price_station2.png"))
-dev.off()
-
-all %>% 
-  filter(Stationgroup == 5) %>% 
-  group_by(Nearest.station.Name) %>% 
-  summarise(count=n())
-
-# Binning Area
-Area <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Area, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 2)) +
-  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
-  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) 
-Area
-ggsave(file.path(dir,"Result","Unit_price_area.png"))
-dev.off()
-
-all <- all %>%
-  group_by(Area) %>%
-  mutate(Areagroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 400000 ~ '5',
-                                  median(Transaction.price.Unit.price.m.2.) >= 300000 & median(Transaction.price.Unit.price.m.2.) < 400000 ~ '4',
-                                  median(Transaction.price.Unit.price.m.2.) >= 200000  & median(Transaction.price.Unit.price.m.2.) < 300000 ~ '3',
-                                  median(Transaction.price.Unit.price.m.2.) >= 100000  & median(Transaction.price.Unit.price.m.2.) < 200000 ~ '2',
-                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 100000 ~ '1'))
-# Check again
-Area2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Areagroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
-  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
-  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
-geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=10) 
-Area2
-ggsave(file.path(dir,"Result","Unit_price_area2.png"))
-dev.off()
-
-all %>% 
-  filter(Areagroup == 5) %>% 
-  group_by(Area) %>% 
-  summarise(count=n())
-
-# Frontage
-cor_frontage_price <- cor(all$Transaction.price.Unit.price.m.2., all$Frontage)
-Price_frontage <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Frontage, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_frontage_price,
-           x = 30, y = 1000000, size = 8, colour = "red")
-Price_frontage
-ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
-dev.off()
-```
-# 7. Preparing data for modeling
-## 7.1. Drop variables and correct the variable categories
-We now need to drop some variables in our data.  
-* Nearest.station.Name and Area: will be replaced by Stationgroup and Areagroup during modeling, respectively.
-* Year, Year.of.construction: will be replaced by Age.
-* Prefecture: in this current version, we will only analyze the house price in Kanagawa. So this variable will be droped.
-* Stationgroup and Areagroup: should be in numeric variables.  
-## 7.2. 
-# Modeling
+# 6 Feature engineering
+## 6.1 Factorize data
+### 6.1.1 Factorize ordinal data
+I first factorize variables with clear ordinary: "quarter.1" and "Layout".
