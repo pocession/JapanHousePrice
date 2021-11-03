@@ -222,7 +222,10 @@ Raw %>%
 Raw <- Raw %>%
   filter(!is.na(Year.of.construction))
 
-Raw <- select(Raw, -c("Transaction.price.Unit.price.m.2.","Maximus.Building.Coverage.Ratio...","Maximus.Floor.area.Ratio...","Frontage","Renovation","Transactional.factors","quarter.2"))
+
+# Drop some variables
+drops <- c("Transaction.price.Unit.price.m.2.","Maximus.Building.Coverage.Ratio...","Maximus.Floor.area.Ratio...","Frontage","Renovation","Transactional.factors","quarter.2")
+Raw <- Raw[ , !(names(Raw) %in% drops)]
 
 # Check whether we have any variables containing missing values now
 blankcol <- which(sapply(Raw,function(x) any(x== "")))
@@ -242,25 +245,16 @@ Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.To
 
 Raw[Factors]<-lapply(Raw[Factors],factor)
 
-ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(as.factor(Layout), log10(Transaction.price.total.), FUN=median), y=log10(Transaction.price.total.))) +
+ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(as.factor(Layout), Transaction.price.total., FUN=median), y=Transaction.price.total.)) +
   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Layout', y='Median price') +
-  ylim(0,10) +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2)
+  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3)
 
 ggsave(file.path(dir,"Result","Unit_price_station.png"))
 Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
 Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
                                                           "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
 
-### 6.1.1 Factorize non-ordinal variables first ######
-Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
-             "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
-             "City.Planning")
 
-Raw[Factors]<-lapply(Raw[Factors],factor)
-
-
-str(Raw)
 # Drop some variables ----------------------------------------------------------------------------------------------------
 drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")
 Raw <- Raw[ , !(names(Raw) %in% drops)]
