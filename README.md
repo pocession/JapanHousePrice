@@ -134,7 +134,7 @@ The importance of each numeric variable is revealed as the following figure.
 
 #### "Total.floor.area.m.2.": This variable is the only numeric variable with a high correlation with our dependent variable. This makes sense. Houses with more floor area are expensive.
 
-![Price_floor_area](/Result/Price_floor_area.png?raw=true)
+![Price_floor_area0](/Result/Price_floor_area0.png?raw=true)
 
 # 5 Dealing with missing values
 Now I move on to deal with the missing values. I find that missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
@@ -172,20 +172,26 @@ I will only discuss those real estates containing houses. I first exclude data b
 * #### Frontage: This variable means how long the front of a house is connected to the road. There are total 3053 data containing missing values. The missing value may be because no road connected to this house. There are total 2016 data falling in this category and 1037 NAs are still remained. As I have no idea why these 1037 data are missing, it is not safe to impute or delete those data. As the correlation of this variable with the price is very low, I decide not to include this variable when building model in this version. At least, there are already three variables related to the road:  "Frontage.road.Breadth.m.", "Frontage.road.Direction", and "Frontage.road.Classification".  
 
 Price and Frontage:
-![Price_Frontage0](/Result/Price_Frontage0.png?raw=true)  
+![Price_Frontage](/Result/Price_Frontage.png?raw=true)  
 
-* #### "Total.floor.area.m.2.": This is the most important predictor. For apartment and house containing only one floor, the floor area equals to it area. Therefore, I just copy the value of "Area" to this variable and omit those data containing missing values. Now the correlation is more clear.
+* #### "Total.floor.area.m.2.": This is the most important predictor. For apartment and house containing only one floor, the floor area equals to it area. Therefore, I just copy the value of "Area" to this variable and omit those data containing missing values. Now the correlation is more clear.I also notice that there are some outliers. I will deal with those data later.
 
 Price and floor area (new):
-![Price_floor_area2](/Result/Price_floor_area2.png?raw=true)  
+![Price_floor_area1](/Result/Price_floor_area1.png?raw=true)  
 
-* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": missing values in there two variables are same. I directly assign 0 to mising values to these two variables. After assign 0, we can notice that the data should be divided into two groups: coverage ratio is 0 and not 0. Two groups have different median of price. I will deal with this later. 
+* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": The maximum coverage ratio and floor ratio is regulated by laws. I could not make any imputation about those missing values based on other variables. In fact, given the low relationship between price and these two variables, it is not necessary to keep these two variables. Therefore, I decide to dropout these two variables. 
 
-Price and buidling coverage ratio:
-![Price_building_coverage](/Result/Price_building_coverage.png?raw=true)  
+Price and maximum buidling coverage ratio:
+![Price_maxi_building_coverage](/Result/Price_maxi_building_coverage.png?raw=true) 
+Price and maximum floor coverage ratio:
+![Price_maxi_floor_coverage](/Result/Price_maxi_floor_coverage.png?raw=true)  
 
-* #### "Year.of.construction": Houses built before world war II do not contain information of year of built. We assign a dummy number 1935 to all NAs. 
-* #### "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning": Assign "No_information" to missing values in these three variables.  
+* #### "Year.of.construction": There is no way to impute the year when the house was built. I omit data containg missing values in this variable.  
+
+Price and Year.of.construction:
+![Price_year_construction](/Result/Price_year_construction.png?raw=true) 
+
+* #### "Area", "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning": Assign "No_information" to missing values in these three variables.  
 * #### "Renovation", and "Transactional.factors": These two variables contain too many NAs and not useful. I remove these two variables in modeling. 
 
 We should not have any variables containing missing values now.
