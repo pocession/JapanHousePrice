@@ -205,7 +205,11 @@ missingcol
 
 There are 0 variables containing missing values
 ```
+
+I separate test and train data at this step. I will let the test dataset untouched and only use the train dataset in the following stage. Finally, I save wrangled, train and test dataset.
 # 6 Feature engineering
 ## 6.1 Factorize data
-### 6.1.1 Factorize ordinal data
-I first factorize variables with clear ordinary: "quarter.1" and "Layout".
+I drop the "No" and "Prefecture" variables first. In a version discussing the nationwide price, the "Prefecture" variable will be used. I then factorize all character variables.
+## 6.2 Identify the important variables by random forest
+Before I perform any further feature engineering, I use random forest method to know which variable is important and deserves more time to be engineered.
+

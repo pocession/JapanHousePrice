@@ -11,6 +11,7 @@ library(psych)
 library(caret)
 library(glmnet)
 library(mice)
+library(ranger)
 # 4 Loading and exploring data ------
 ## 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
 period <- "20053_20212_e"
@@ -86,15 +87,15 @@ Raw <- Raw %>%
   filter(!(Type %in% c("Agricultural Land","Forest Land","Residential Land(Land Only)")))
 
 # Have an overveiw about which numeric variable is important
-all_numVar <- Raw[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-# sort on decreasing correlations with SalePrice
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
-CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
-cor_numVar <- cor_numVar[CorHigh, CorHigh]
-png(file.path(dir,"Result","CorrelationvarNum.png"))
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
-dev.off()
+# all_numVar <- Raw[, numericVars]
+# cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
+# # sort on decreasing correlations with SalePrice
+# cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.total.'], decreasing = TRUE))
+# CorHigh <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0.01)))
+# cor_numVar <- cor_numVar[CorHigh, CorHigh]
+# png(file.path(dir,"Result","CorrelationvarNum.png"))
+# corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt")
+# dev.off()
 
 # Check the relationship between "Total.floor.area.m.2." and "Transaction.price.total.".
 # ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(x=Total.floor.area.m.2., y=log10(Transaction.price.total.)))+
@@ -111,9 +112,9 @@ NAcol <- which(colSums(is.na(Raw)) > 0)
 missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
-png(file.path(dir,"Result","Missing.png"))
-md.pattern(Raw, rotate.names = TRUE)
-dev.off()
+# png(file.path(dir,"Result","Missing.png"))
+# md.pattern(Raw, rotate.names = TRUE)
+# dev.off()
 
 # Assign "No_information" to NAs.
 Raw$Region[which(Raw$Region == "")] <- "No_information"
@@ -234,16 +235,46 @@ missingcol<-union(names(blankcol),names(NAcol))
 cat('There are', length(missingcol), 'variables containing missing values')
 missingcol
 
-write.csv(Raw,file.path(dir, "Wrangled",paste("Kanagawa",period,".csv")))
+# Separate train and test data -----------------------------------------------------------------------------------------------------
+# 75% of the sample size
+smp_size <- floor(0.75 * nrow(Raw))
 
+## set the seed to make your partition reproducible
+set.seed(108)
+train_ind <- sample(seq_len(nrow(Raw)), size = smp_size)
+
+train <- Raw[train_ind, ]
+test <- Raw[-train_ind, ]
+
+write.csv(Raw,file.path(dir, "Wrangled",paste("Kanagawa",period,".csv")))
+write.csv(train,file.path(dir, "Wrangled",paste("Kanagawa",period,"train.csv")))
+write.csv(test,file.path(dir, "Wrangled",paste("Kanagawa",period,"test.csv")))
 # 6 Feature engineering ------
-## 6.1 Factorize data ######
-### 6.1.1 Factorize character variables ######
-Factors <- c("Type","Region","City.Town.Ward.Village.code","Prefecture","City.Town.Ward.Village","Area","Nearest.station.Name",
-             "Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction","Frontage.road.Classification",
-             "City.Planning")
+## 6.1 Factorize character variables ######
+
+# Re-assign the train dataset to Raw
+# Drop the No and Prefecture variable
+Raw <- train
+Raw <- select(Raw, -c("No","Prefecture"))
+Factors <- c("Type","Region","City.Town.Ward.Village.code","City.Town.Ward.Village","Area","Nearest.station.Name",
+             "Layout","Land.shape","Building.structure","Use","Purpose.of.Use","Frontage.road.Direction",
+             "Frontage.road.Classification","City.Planning")
 
 Raw[Factors]<-lapply(Raw[Factors],factor)
+
+### 6.2 Identify important variables by random forest ######
+RF<-as.data.frame(Raw)
+# Run the random Forest
+quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='impurity')
+imp_DF <- data.frame(Variables = row.names(imp_RF), importqance = imp_RF)
+imp_DF <- imp_DF[order(imp_DF$Importance, decreasing = TRUE),]
+
+ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Importance, fill=Importance)) + 
+  geom_bar(stat = 'identity') + 
+  labs(x = 'Variables', y= '-log (Importance p value)') + 
+  coord_flip() + theme(legend.position="none")
+ggsave(file.path(dir,"Result","randomForest.png"))
+dev.off()
 
 ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(as.factor(Layout), Transaction.price.total., FUN=median), y=Transaction.price.total.)) +
   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Layout', y='Median price') +
