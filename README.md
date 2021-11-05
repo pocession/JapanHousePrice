@@ -32,6 +32,7 @@ library(psych)
 library(caret)
 library(glmnet)
 library(mice)
+library(gridExtra)
 ```
 
 ## 4.2. Loading csv data into R
@@ -206,10 +207,42 @@ missingcol
 There are 0 variables containing missing values
 ```
 
-I separate test and train data at this step. I will let the test dataset untouched and only use the train dataset in the following stage. Finally, I save wrangled, train and test dataset.
-# 6 Feature engineering
+I separate test and train data at this step. I will let the test dataset untouched and only use the train dataset in the following stage. Finally, I save wrangled, train and test dataset.  
+
+# 6 Indetify and visualize important variables  
 ## 6.1 Factorize data
 I drop the "No" and "Prefecture" variables first. In a version discussing the nationwide price, the "Prefecture" variable will be used. I then factorize all character variables.
 ## 6.2 Identify the important variables by random forest
-Before I perform any further feature engineering, I use random forest method to know which variable is important and deserves more time to be engineered.
+Before performing any further feature engineering, I use random forest method to know which variable is important and deserves more efforts to be engineered. "Year.of.construction", "Type", "Building structure", "City.Town.Ward.Village.code", and "City.Planning" are important features (variables). Interestingly, remove "Use" seems to increase the accuracy of model.    
 
+Random forest result:
+![randomForest](/Result/randomForest.png?raw=true) 
+
+## 6.3 Visualization
+* ### "Total.floor.area.m.2.", "Area.m.2.": I already know both are highly correlated with price but "Total.floor.area.m.2." is more correlated with price (p value of floor area and area is 0.62 and 0.47, respectively). Since both variables are also co-dependent (correlation = 0.7), I will keep "Total.floor.area.m.2." and remove the other. I also identify some outliers and will remove them before modeling. And I notice that fewer house with total floor area larger than 1000 mm2 and also have higher price. I will create another variable to represent those big and expensive houses.
+![Price_floor_area1](/Result/Price_floor_area1.png?raw=true)
+
+* ### "Year.of.Construction", "Year": The price is highly correlated with the year of construction and is also little positively correlated with the year of sold. Therefore, I decide to create another variable representing the house of age. I also decide to create a variable to show the house is new or old when it is sold (Age < 1).   
+![Year](/Result/Year.png?raw=true)
+
+* ### The most important factor variable: "Building.structure": I see there are some houses with rare structrues. I decide to create a variable to represent common and rare structure. I also see there is a trend that house with certain structrues are more expensive. I will create another new variable to represent this trend (e.g., w (stands for woods) are more expensive than RC and SRC). 
+![Structure](/Result/Structure.png?raw=true)  
+
+# 7 Feature engineering
+## 7.1 BigHouse: I first create a variable to represent house with floor area larger than 1000 mm2. And the mean price of big house is significantly than it of small house.
+
+```{r}
+t.test(log10(small_house),log10(big_house))
+
+Welch Two Sample t-test
+
+data:  log10(small_house) and log10(big_house)
+t = -409.51, df = 708.31, p-value < 2.2e-16
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -1.252378 -1.240427
+sample estimates:
+mean of x mean of y 
+ 1.893183  3.139585 
+```  
+![BigHouse](/Result/BigHouse.png?raw=true)  

@@ -12,6 +12,7 @@ library(caret)
 library(glmnet)
 library(mice)
 library(ranger)
+library(gridExtra)
 # 4 Loading and exploring data ------
 ## 4.2 Loading data into R -----------------------------------------------------------------------------------------------------
 period <- "20053_20212_e"
@@ -246,10 +247,10 @@ train_ind <- sample(seq_len(nrow(Raw)), size = smp_size)
 train <- Raw[train_ind, ]
 test <- Raw[-train_ind, ]
 
-write.csv(Raw,file.path(dir, "Wrangled",paste("Kanagawa",period,".csv")))
-write.csv(train,file.path(dir, "Wrangled",paste("Kanagawa",period,"train.csv")))
-write.csv(test,file.path(dir, "Wrangled",paste("Kanagawa",period,"test.csv")))
-# 6 Feature engineering ------
+# write.csv(Raw,file.path(dir, "Wrangled",paste("Kanagawa",period,".csv")))
+# write.csv(train,file.path(dir, "Wrangled",paste("Kanagawa",period,"train.csv")))
+# write.csv(test,file.path(dir, "Wrangled",paste("Kanagawa",period,"test.csv")))
+# 6 Identify and visualize important variables (features) ------
 ## 6.1 Factorize character variables ######
 
 # Re-assign the train dataset to Raw
@@ -263,127 +264,73 @@ Factors <- c("Type","Region","City.Town.Ward.Village.code","City.Town.Ward.Villa
 Raw[Factors]<-lapply(Raw[Factors],factor)
 
 ### 6.2 Identify important variables by random forest ######
-RF<-as.data.frame(Raw)
-# Run the random Forest
-quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='impurity')
-imp_DF <- data.frame(Variables = row.names(imp_RF), importqance = imp_RF)
-imp_DF <- imp_DF[order(imp_DF$Importance, decreasing = TRUE),]
+# RF<-as.data.frame(Raw)
+# # Run the random Forest
+# quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='permutation')
+# imp_RF <- importance(quick_RF)
+# imp_DF <- data.frame(Variables = names(imp_RF), Importance = imp_RF)
+# imp_DF$Variance <- 100 * (imp_DF$Importance / sum(imp_DF$Importance))
+# imp_DF <- imp_DF[order(imp_DF$Variance, decreasing = TRUE),]
+# 
+# ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Variance, fill=Variance)) +
+#   geom_bar(stat = 'identity') +
+#   labs(x = 'Variables', y= '% increase if variable is randomly permutated') +
+#   coord_flip() + theme(legend.position="none")
+# ggsave(file.path(dir,"Result","randomForest.png"))
+# dev.off()
 
-ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Importance, fill=Importance)) + 
-  geom_bar(stat = 'identity') + 
-  labs(x = 'Variables', y= '-log (Importance p value)') + 
-  coord_flip() + theme(legend.position="none")
-ggsave(file.path(dir,"Result","randomForest.png"))
-dev.off()
+### 6.3 Visualization ######
+#### Total.floor.area.m.2., Area.m.2.
+cor_floor_area_matrix <- Raw %>%
+  select(Area.m.2.,Total.floor.area.m.2.,Transaction.price.total.)
+cor_floor_area <- cor(cor_floor_area_matrix, use="pairwise.complete.obs")
 
-ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(as.factor(Layout), Transaction.price.total., FUN=median), y=Transaction.price.total.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Layout', y='Median price') +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=3)
+# Visualize price, floor area and area
+# as same as before
 
-ggsave(file.path(dir,"Result","Unit_price_station.png"))
-Raw$quarter.1 <- factor(Raw$quarter.1,order = TRUE, levels = c("1st", "2nd", "3rd", "4th"))
-Raw$Layout <- factor(Raw$Layout, order = TRUE, levels = c("No_information","1R","1K","1DK","1LDK","2K","2K+S","2DK","2DK+S","2LDK","2LDK+S",
-                                                          "3K","3DK","3LDK","3LDK+S","4DK","4LDK","5DK","5LDK","6DK"))
+#### Year.of.Construction, Year ######
+# p_year_construction <- ggplot(data=Raw, aes(x=Year.of.construction)) +
+#   geom_histogram(stat='count')
+# p_year <- ggplot(data=Raw, aes(x=as.factor(Year))) +
+#   geom_histogram(stat='count')
+# grid.arrange(p_year_construction,p_year, nrow=2)
+# g <- arrangeGrob(p_year_construction,p_year, nrow=2)
+# ggsave(file.path(dir,"Result","Year.png"),g)
+# dev.off()
 
+#### Building.structure
+# p_structure<- ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(Building.structure, log10(Transaction.price.total.), FUN=median), y=log10(Transaction.price.total.))) +
+#   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Building structure', y='log10 median price') +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10)) +
+#   ylim(0,10) +
+#   geom_label(stat = "count", aes(label = ..count.., y = ..count../1000000), size=3)
+# p_structure2 <- ggplot(data=Raw, aes(x=reorder(Building.structure, log10(Transaction.price.total.), FUN=median))) +
+#      geom_histogram(stat='count')
+# grid.arrange(p_structure,p_structure2, nrow=2)
+# g <- arrangeGrob(p_structure,p_structure2, nrow=2)
+# ggsave(file.path(dir,"Result","Structure.png"),g)
+# dev.off()
 
-# Drop some variables ----------------------------------------------------------------------------------------------------
-drops <- c("Transaction.price.total.","Area.m.2.","quarter.2","Renovation","Transactional.factors")
-Raw <- Raw[ , !(names(Raw) %in% drops)]
+# 7 Feature engineering ------
+## 7.1 BigHouse
+Raw$BigHouse <- ifelse(Raw$Total.floor.area.m.2. >= 1000, 1, 0)
 
-numericVars <- which(sapply(Raw, is.numeric)) #index vector numeric variables
-factorVars <- which(sapply(Raw, is.factor)) #index vector factor variables
-cat('There are', length(numericVars), 'numeric variables, and', length(factorVars), 'categoric variables')
+small_house <- Raw %>%
+  filter(BigHouse == 0) %>%
+  select(Total.floor.area.m.2.)
 
-# Visualize the transaction price-----------------------------------------------------------------------------------------
-# We only consier house price
-all <- Raw %>%
-  filter(grepl("House",Use))
+big_house <- Raw %>%
+  filter(BigHouse == 1) %>%
+  select(Total.floor.area.m.2.)
 
-ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Transaction.price.Unit.price.m.2.)) +
-  geom_histogram(fill="blue", binwidth = 10000)
-ggsave(file.path(dir,"Result","Transaction.price.Unit.price.m2.png"))
-dev.off()
+t_test <- t.test(log10(small_house),log10(big_house))
 
-summary_Transaction.price.Unit.price.m2. <- summary(all$Transaction.price.Unit.price.m.2.)
-summary_Transaction.price.Unit.price.m2.
-
-# Identify the correlation between Transaction.price.Unit.price.m.2.and numeric variables--------------------------------- 
-numericVars <- which(sapply(all, is.numeric))
-all_numVar <- all[, numericVars]
-cor_numVar <- cor(all_numVar, use="pairwise.complete.obs") #correlations of all numeric variables
-
-# Sort on decreasing correlations with Transaction.price.Unit.price.m.2.
-cor_sorted <- as.matrix(sort(cor_numVar[,'Transaction.price.Unit.price.m.2.'], decreasing = TRUE))
-# Display all correlation
-Cor <- names(which(apply(cor_sorted, 1, function(x) abs(x)>0)))
-cor_numVar <- cor_numVar[Cor, Cor]
-
-png(file.path(dir,"Result","CorrelationvarNum.png"))
-corrplot.mixed(cor_numVar, tl.col="black", tl.pos = "lt", tl.cex = 0.7,cl.cex = .7, number.cex=.7)
-dev.off()
-
-# Drop Maximus.Building.Coverage.Ratio...
-all <- all[,-22]
-
-# Drop unused levels
-all$Use <- factor(all$Use)
-
-# Identify the correlation between Transaction.price.Unit.price.m.2. and all variables by Random Forest----------------------
-RF<- all %>%
-  filter(!is.na(Transaction.price.Unit.price.m.2.))
-set.seed(2018)
-
-# randomForest can not handle variables containing more than 53 level
-# select the top 50 Areas
-Frequency_Area <- all %>%
-  group_by(Area) %>%
-  summarise(n=n()) %>%
-  arrange(desc(n))
-
-RF <- all %>%
-  group_by(Area) %>%
-  filter(n()>55)
-
-RF$Area <- factor(RF$Area)
-RF$Nearest.station.Name <- factor(RF$Nearest.station.Name)
-RF<-as.data.frame(RF)
-# Run the random Forest
-quick_RF <- randomForest(x=RF[,-c(10)], y=RF[,10], ntree=100,importance=TRUE)
-imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = row.names(imp_RF), MSE = imp_RF[,1])
-imp_DF <- imp_DF[order(imp_DF$MSE, decreasing = TRUE),]
-
-ggplot(imp_DF[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-ggsave(file.path(dir,"Result","randomForest.png"))
-dev.off()
-
-# Feature variables ----------------------------------------------------------------------------------------------------
-# Transform to year.of.Constuction to Age
-all$Age <- as.numeric(all$Year - all$Year.of.construction)
-
-# There are some house sold earlier than it's construction so that the age is negative
-# I think they are new houses so I change the negative age to 0
-# Assign "No_information" to those variables
-all$Age[which(all$Age < 0)] <- 0
-
-cor_age_price <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
-Price_age <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_age_price,
-    x = 30, y = 1000000, size = 8, colour = "red")
-Price_age
-dev.off()
-all <- all %>%
-  filter(Transaction.price.Unit.price.m.2.< 1000000)
-cor_age_price2 <- cor(all$Transaction.price.Unit.price.m.2., all$Age)
-Price_age2 <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Age, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_age_price2,
-           x = 30, y = 500000, size = 8, colour = "red")
-Price_age2
-ggsave(file.path(dir,"Result","Unit_price_age2.png"))
+ggplot(Raw, aes(x=as.factor(BigHouse), y=log10(Transaction.price.total.))) +
+  geom_bar(stat='summary', fun = "median", fill='blue') +
+  geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
+  theme_grey(base_size = 18) +
+  ylim(0,10) # divided by 1000000 is just to make sure the label is on the bottom
+ggsave(file.path(dir,"Result","BigHouse.png"))
 dev.off()
 
 # New
