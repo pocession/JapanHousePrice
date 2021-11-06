@@ -229,20 +229,59 @@ Random forest result:
 ![Structure](/Result/Structure.png?raw=true)  
 
 # 7 Feature engineering
-## 7.1 BigHouse: I first create a variable to represent house with floor area larger than 1000 mm2. And the mean price of big house is significantly than it of small house.
+## 7.1 BigHouse
+I first create a variable to represent house with floor area larger than 1000 mm2. And the mean price of big house is significantly than it of small house.
 
 ```{r}
-t.test(log10(small_house),log10(big_house))
+t_test_floor <- t.test(log10(small_house),log10(big_house))
+t_test_floor
+
+	Welch Two Sample t-test
+
+data:  log10(small_house) and log10(big_house)
+t = -87.024, df = 745.64, p-value < 2.2e-16
+alternative hypothesis: true difference in means is not equal to 0
+95 percent confidence interval:
+ -1.078297 -1.030721
+sample estimates:
+mean of x mean of y 
+ 7.412883  8.467392
+```  
+![BigHouse](/Result/BigHouse.png?raw=true)  
+
+## 7.2 Age
+I create another variable "Age" to represent both "Year" and "Year.of.Constuction". The correlation between "Age", "Year", and "Year.of.Construction" is -0.102, 0.001, and 0.102, respectively. Hence, "Age" variable has alomost the same correlation as "Year.of.Construction". I also create "IsNew" variable to represent the new house.  
+
+```{r}
+t_test_new <- t.test(log10(old_house),log10(new_house))
+t_test_new
 
 Welch Two Sample t-test
 
-data:  log10(small_house) and log10(big_house)
-t = -409.51, df = 708.31, p-value < 2.2e-16
+data:  log10(old_house) and log10(new_house)
+t = -196.81, df = 168333, p-value < 2.2e-16
 alternative hypothesis: true difference in means is not equal to 0
 95 percent confidence interval:
- -1.252378 -1.240427
+ -0.2529317 -0.2479436
 sample estimates:
 mean of x mean of y 
- 1.893183  3.139585 
+ 7.340772  7.591210 
 ```  
-![BigHouse](/Result/BigHouse.png?raw=true)  
+![Price_Age](/Result/Price_age.png?raw=true)
+![IsNew](/Result/IsNew.png?raw=true) 
+
+## 7.3 StructureQuality
+I create a new variable "Structure Quality" to replace the "Building.structure" variable. The correlation between structure and price now is much clear (correlation = 0.106).
+
+![Price_Structure_quality](/Result/Price_Structure_quality.png?raw=true)
+
+## 7.4 StationDistance
+I know there is a significant decrease of price when the closet station is more than 45 mins. Hence, I create a variable "StationDistance" to represent this. However, after running a random forest test again, I find this new variable is less important than the original variable: "Nearest.station.Distance.minute.". So I decide not to include this variable in modeling.
+
+![StationDistance](/Result/StationDistance.png?raw=true)  
+
+# 8 Modeling
+## 8.1 Drop highly correlated and unnecessary variables
+Finally, I drop variables contributing very less to the dataset.
+
+## 8.2 Removing outliers 

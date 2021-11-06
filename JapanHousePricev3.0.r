@@ -298,7 +298,7 @@ cor_floor_area <- cor(cor_floor_area_matrix, use="pairwise.complete.obs")
 # ggsave(file.path(dir,"Result","Year.png"),g)
 # dev.off()
 
-#### Building.structure
+#### Building.structure ######
 # p_structure<- ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(Building.structure, log10(Transaction.price.total.), FUN=median), y=log10(Transaction.price.total.))) +
 #   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Building structure', y='log10 median price') +
 #   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10)) +
@@ -311,148 +311,156 @@ cor_floor_area <- cor(cor_floor_area_matrix, use="pairwise.complete.obs")
 # ggsave(file.path(dir,"Result","Structure.png"),g)
 # dev.off()
 
+#### Layout ######
+# p_layout<- ggplot(Raw[!is.na(Raw$Transaction.price.total.),], aes(x=reorder(Layout, log10(Transaction.price.total.), FUN=median), y=log10(Transaction.price.total.))) +
+#   geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Layout', y='log10 median price') +
+#   theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10)) +
+#   ylim(0,10) +
+#   geom_label(stat = "count", aes(label = ..count.., y = ..count../1000000), size=2)
+# p_layout2 <- ggplot(data=Raw, aes(x=reorder(Layout, log10(Transaction.price.total.), FUN=median))) + 
+#      theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10)) +
+#      geom_histogram(stat='count')
+# grid.arrange(p_layout,p_layout2, nrow=2)
+# g <- arrangeGrob(p_layout,p_layout2, nrow=2, nrow=2)
+# ggsave(file.path(dir,"Result","Layout.png"),g)
+# dev.off()
+
 # 7 Feature engineering ------
-## 7.1 BigHouse
+## 7.1 BigHouse ######
 Raw$BigHouse <- ifelse(Raw$Total.floor.area.m.2. >= 1000, 1, 0)
 
 small_house <- Raw %>%
   filter(BigHouse == 0) %>%
-  select(Total.floor.area.m.2.)
+  select(Transaction.price.total.)
 
 big_house <- Raw %>%
   filter(BigHouse == 1) %>%
-  select(Total.floor.area.m.2.)
+  select(Transaction.price.total.)
 
-t_test <- t.test(log10(small_house),log10(big_house))
+t_test_floor <- t.test(log10(small_house),log10(big_house))
+t_test_floor
 
-ggplot(Raw, aes(x=as.factor(BigHouse), y=log10(Transaction.price.total.))) +
-  geom_bar(stat='summary', fun = "median", fill='blue') +
-  geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
-  theme_grey(base_size = 18) +
-  ylim(0,10) # divided by 1000000 is just to make sure the label is on the bottom
-ggsave(file.path(dir,"Result","BigHouse.png"))
-dev.off()
+# ggplot(Raw, aes(x=as.factor(BigHouse), y=log10(Transaction.price.total.))) +
+#   geom_bar(stat='summary', fun = "mean", fill='blue') +
+#   geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
+#   # divided by 1000000 is just to make sure the label is on the bottom
+#   theme_grey(base_size = 18) +
+#   ylim(0,10)+ 
+#   geom_hline(yintercept=7.41, linetype="dashed")
+#   # dashed line is mean price
+# ggsave(file.path(dir,"Result","BigHouse.png"))
+# dev.off()
 
-# New
-all$IsNew <- ifelse(all$Year==all$Year.of.construction, 1, 0)
-table(all$IsNew)
+## 7.2 Age, IsNew ######
+# Age
+Raw$Age <- Raw$Year - Raw$Year.of.construction
 
-ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=as.factor(IsNew), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat='summary', fun = "median", fill='blue') +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=6) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  theme_grey(base_size = 18) +
-  geom_hline(yintercept=60000, linetype="dashed")
-ggsave(file.path(dir,"Result","Unit_price_IsNew.png"))
-dev.off()
+cor_year_matrix <- Raw %>%
+  select(Year,Year.of.construction, Age,Transaction.price.total.)
+cor_year <- cor(cor_year_matrix, use="pairwise.complete.obs")
 
-# Binning Station
-Station <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Nearest.station.Name, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 5)) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) +
-  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
-Station
-ggsave(file.path(dir,"Result","Unit_price_station.png"))
-dev.off()
+# IsNew
+Raw$IsNew <- ifelse(Raw$Age <= 1, 1, 0)
 
+old_house <- Raw %>%
+  filter(IsNew == 0) %>%
+  select(Transaction.price.total.)
+
+new_house <- Raw %>%
+  filter(IsNew == 1) %>%
+  select(Transaction.price.total.)
+
+t_test_new <- t.test(log10(old_house),log10(new_house))
+t_test_new
+
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(Age, y=log10(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "Age", y = "log(Transaction.price.total.)") +
+#   ylim(0,10)
+# ggsave(file.path(dir,"Result","Price_Age.png"))
+# dev.off()
+# 
+# ggplot(Raw, aes(x=as.factor(IsNew), y=log10(Transaction.price.total.))) +
+#   geom_bar(stat='summary', fun = "mean", fill='blue') +
+#   geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
+#   # divided by 1000000 is just to make sure the label is on the bottom
+#   theme_grey(base_size = 18) +
+#   ylim(0,10)+ 
+#   geom_hline(yintercept=7.34, linetype="dashed")
+# # dashed line is mean price
+# ggsave(file.path(dir,"Result","IsNew.png"))
+# dev.off()
+
+## 7.3 Building.structure ######
+# Regroup the building structure
 # Regroup Nearest.station.Name based on their median price
-all <- all %>%
-  group_by(Nearest.station.Name) %>%
-  mutate(Stationgroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 175000 ~ '5',
-                                  median(Transaction.price.Unit.price.m.2.) >= 125000 & median(Transaction.price.Unit.price.m.2.) < 175000 ~ '4',
-                                  median(Transaction.price.Unit.price.m.2.) >= 75000  & median(Transaction.price.Unit.price.m.2.) < 125000 ~ '3',
-                                  median(Transaction.price.Unit.price.m.2.) >= 25000  & median(Transaction.price.Unit.price.m.2.) < 75000 ~ '2',
-                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 25000 ~ '1'))
+Raw$StructureQuality <- NA
+Raw <- Raw %>%
+  group_by(Building.structure) %>%
+  mutate(StructureQuality = case_when(Building.structure %in% c("S, B", "SRC", "S, LS", "SRC, RC", "W, LS") ~ 1,
+                                      Building.structure %in% c("RC", "No_information", "RC, B", "S, W") ~ 2,
+                                      Building.structure %in% c("W") ~ 3,
+                                      Building.structure %in% c("B", "RC, W", "LS", "RC, LS", "S", "RC, S", "SRC, S") ~ 4
+                                  )) %>%
+  ungroup()
 
-# Check again
-Station2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Stationgroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Nearest Station', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12)) +
-  scale_y_continuous(breaks= seq(0, 200000, by=50000), labels = comma) +
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=5) +
-  geom_hline(yintercept=c(25000,75000,125000,175000), linetype="dashed", color = "red") 
-Station2
-ggsave(file.path(dir,"Result","Unit_price_station2.png"))
-dev.off()
+cor_structure_matrix <- Raw %>%
+  ungroup()
+  select(StructureQuality,Transaction.price.total.)
+cor_structure <- cor(Raw$StructureQuality, Raw$Transaction.price.total., use="pairwise.complete.obs")
 
-all %>% 
-  filter(Stationgroup == 5) %>% 
-  group_by(Nearest.station.Name) %>% 
-  summarise(count=n())
+# ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(StructureQuality, y=log10(Transaction.price.total.)))+
+#   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
+#   labs(x = "StructureQuality", y = "log(Transaction.price.total.)") +
+#   ylim(0,10)
+# ggsave(file.path(dir,"Result","Price_Structure_quality.png"))
+# dev.off()
 
-# Binning Area
-Area <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Area, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 2)) +
-  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
-  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
-  geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=2) 
-Area
-ggsave(file.path(dir,"Result","Unit_price_area.png"))
-dev.off()
+# Raw$StationDistance <- ifelse(Raw$Nearest.station.Distance.minute. < 45, 1, 0)
+# 
+# far_house <- Raw %>%
+#   filter(StationDistance == 0) %>%
+#   select(Transaction.price.total.)
+# 
+# close_house <- Raw %>%
+#   filter(StationDistance == 1) %>%
+#   select(Transaction.price.total.)
+# 
+# t_test_station <- t.test(log10(far_house),log10(close_house))
+# t_test_station
 
-all <- all %>%
-  group_by(Area) %>%
-  mutate(Areagroup = case_when(median(Transaction.price.Unit.price.m.2.) >= 400000 ~ '5',
-                                  median(Transaction.price.Unit.price.m.2.) >= 300000 & median(Transaction.price.Unit.price.m.2.) < 400000 ~ '4',
-                                  median(Transaction.price.Unit.price.m.2.) >= 200000  & median(Transaction.price.Unit.price.m.2.) < 300000 ~ '3',
-                                  median(Transaction.price.Unit.price.m.2.) >= 100000  & median(Transaction.price.Unit.price.m.2.) < 200000 ~ '2',
-                                  median(Transaction.price.Unit.price.m.2.) >= 0      & median(Transaction.price.Unit.price.m.2.) < 100000 ~ '1'))
-# Check again
-Area2 <- ggplot(all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=reorder(Areagroup, Transaction.price.Unit.price.m.2., FUN=median), y=Transaction.price.Unit.price.m.2.)) +
-  geom_bar(stat="summary", fun = "median", fill='blue') + labs(x='Area', y='Median Unit price') +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 10)) +
-  scale_y_continuous(breaks= seq(0, 500000, by=100000), labels = comma) +
-  geom_hline(yintercept=c(100000,200000,300000,400000), linetype="dashed", color = "red") 
-geom_label(stat = "count", aes(label = ..count.., y = ..count..), size=10) 
-Area2
-ggsave(file.path(dir,"Result","Unit_price_area2.png"))
-dev.off()
+# ggplot(Raw, aes(x=as.factor(StationDistance), y=log10(Transaction.price.total.))) +
+#   geom_bar(stat='summary', fun = "mean", fill='blue') +
+#   geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
+#   # divided by 1000000 is just to make sure the label is on the bottom
+#   theme_grey(base_size = 18) +
+#   ylim(0,10)+
+#   geom_hline(yintercept=7.32, linetype="dashed")
+# # dashed line is mean price
+# ggsave(file.path(dir,"Result","StationDistance.png"))
+# dev.off()
 
-all %>% 
-  filter(Areagroup == 5) %>% 
-  group_by(Area) %>% 
-  summarise(count=n())
+# Run the random Forest again
+RF<-as.data.frame(Raw)
+quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='permutation')
+imp_RF <- importance(quick_RF)
+imp_DF <- data.frame(Variables = names(imp_RF), Importance = imp_RF)
+imp_DF$Variance <- 100 * (imp_DF$Importance / sum(imp_DF$Importance))
+imp_DF <- imp_DF[order(imp_DF$Variance, decreasing = TRUE),]
 
-# Frontage
-cor_frontage_price <- cor(all$Transaction.price.Unit.price.m.2., all$Frontage)
-Price_frontage <- ggplot(data=all[!is.na(all$Transaction.price.Unit.price.m.2.),], aes(x=Frontage, y=Transaction.price.Unit.price.m.2.))+
-  geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black", aes(group=1)) +
-  scale_y_continuous(breaks= seq(0, 5000000, by=1000000), labels = comma) +
-  annotate("text",label = cor_frontage_price,
-           x = 30, y = 1000000, size = 8, colour = "red")
-Price_frontage
-ggsave(file.path(dir,"Result","Unit_price_frontage.png"))
-dev.off()
-# Prepare data for modeling --------------------------------------------------------------------------------------------------------
-# Separate train and test data -----------------------------------------------------------------------------------------------------
-# 75% of the sample size
-smp_size <- floor(0.75 * nrow(all))
+ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Variance, fill=Variance)) +
+  geom_bar(stat = 'identity') +
+  labs(x = 'Variables', y= '% increase if variable is randomly permutated') +
+  coord_flip() + theme(legend.position="none")
 
-## set the seed to make your partition reproducible
-set.seed(108)
-train_ind <- sample(seq_len(nrow(all)), size = smp_size)
+# 8 Modeling ------
+## 8.1 Drop unused variables ######
+dropVars2 <- c('Year.of.construction', 'Year', 'Area.m.2.', 'Building.structure', 'Nearest.station.Name', 'Region',
+                'City.Town.Ward.Village', 'Area','Frontage.road.Direction', 'quarter.1', 'Use', 'Purpose.of.Use')
 
-train <- all[train_ind, ]
-test <- all[-train_ind, ]
-test$Transaction.price.Unit.price.m.2. <- NA
+all <- Raw[,!(names(Raw) %in% dropVars2)]
 
-all <- rbind(train, test)
-
-# Save all, train and test data into csv files
-write.csv(train,file.path(dir,"Wrangled","train.csv"))
-write.csv(test,file.path(dir,"Wrangled","test.csv"))
-write.csv(all,file.path(dir,"Wrangled","all.csv"))
-# Drop unused variables
-dropVars <- c('Year.of.construction', 'Year', 'Nearest.station.Name', 'Area','Prefecture', 'Use')
-
-all <- all[,!(names(all) %in% dropVars)]
-all$Stationgroup <- as.numeric(all$Stationgroup)
-all$Areagroup <- as.numeric(all$Areagroup)
-
-
+all <- as.factor(all$BigHouse)
 # Check how many numeric and factor variables we have now
 # Remove non-numeric variables
 numericVars <- which(sapply(all, is.numeric))
