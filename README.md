@@ -3,9 +3,9 @@
 ### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead.
 # Version 3.0
 # 1. Hightlight of this project
-* The R-square of the current model is 62%.
-* The minimal RMSE of the current model is 0.68, suggesting there is a 68% error of predicted price when compared to the real price. It needs to be furhter improved.
-* This model can be applied to all districts in Kanagawa. 
+* The R-square of the current model is 73%.
+* The minimal RMSE of the current model is 0.39, suggesting there is a 39% error of predicted price when compared to the real price. It's better than the previous version but still needs to be furhter improved.
+* This model can be applied to all areas in Kanagawa. 
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
 * I start this project to understand realestate market in Japan and to practice my data analysis skills. The idea behind this analysis is documented in each section of the README file. To increase the readibility, I remove most of R codes from the README file. The annotation of R codes can be in each section of the R file.
@@ -282,6 +282,7 @@ I know there is a significant decrease of price when the closet station is more 
 
 # 8 Modeling
 ## 8.1 Drop highly correlated and unnecessary variables
-Finally, I drop variables contributing very less to the dataset.
+I drop variables that are metioned before. I also drop some variables that contribute less.
 
 ## 8.2 Removing outliers 
+I remove house with price less than 10000 yen.

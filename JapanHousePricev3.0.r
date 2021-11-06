@@ -354,13 +354,15 @@ t_test_floor
 ## 7.2 Age, IsNew ######
 # Age
 Raw$Age <- Raw$Year - Raw$Year.of.construction
-
+Raw$Age <- ifelse(Raw$Age < 0, 0, Raw$Age)
 cor_year_matrix <- Raw %>%
   select(Year,Year.of.construction, Age,Transaction.price.total.)
 cor_year <- cor(cor_year_matrix, use="pairwise.complete.obs")
 
+# 
 # IsNew
-Raw$IsNew <- ifelse(Raw$Age <= 1, 1, 0)
+Raw$IsNew <- ifelse(Raw$Age == 0, 1, 0)
+Raw$IsNew <- as.numeric(Raw$IsNew)
 
 old_house <- Raw %>%
   filter(IsNew == 0) %>%
@@ -372,7 +374,7 @@ new_house <- Raw %>%
 
 t_test_new <- t.test(log10(old_house),log10(new_house))
 t_test_new
-
+# 
 # ggplot(data=Raw[!is.na(Raw$Transaction.price.total.),], aes(Age, y=log10(Transaction.price.total.)))+
 #   geom_point(col='blue') + geom_smooth(method = "lm", se=FALSE, color="black") +
 #   labs(x = "Age", y = "log(Transaction.price.total.)") +
@@ -441,17 +443,17 @@ cor_structure <- cor(Raw$StructureQuality, Raw$Transaction.price.total., use="pa
 # dev.off()
 
 # Run the random Forest again
-RF<-as.data.frame(Raw)
-quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='permutation')
-imp_RF <- importance(quick_RF)
-imp_DF <- data.frame(Variables = names(imp_RF), Importance = imp_RF)
-imp_DF$Variance <- 100 * (imp_DF$Importance / sum(imp_DF$Importance))
-imp_DF <- imp_DF[order(imp_DF$Variance, decreasing = TRUE),]
-
-ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Variance, fill=Variance)) +
-  geom_bar(stat = 'identity') +
-  labs(x = 'Variables', y= '% increase if variable is randomly permutated') +
-  coord_flip() + theme(legend.position="none")
+# RF<-as.data.frame(Raw)
+# quick_RF <- ranger(Transaction.price.total. ~ ., data = RF, num.trees=100,importance='permutation')
+# imp_RF <- importance(quick_RF)
+# imp_DF <- data.frame(Variables = names(imp_RF), Importance = imp_RF)
+# imp_DF$Variance <- 100 * (imp_DF$Importance / sum(imp_DF$Importance))
+# imp_DF <- imp_DF[order(imp_DF$Variance, decreasing = TRUE),]
+# 
+# ggplot(imp_DF, aes(x=reorder(Variables, Importance), y=Variance, fill=Variance)) +
+#   geom_bar(stat = 'identity') +
+#   labs(x = 'Variables', y= '% increase if variable is randomly permutated') +
+#   coord_flip() + theme(legend.position="none")
 
 # 8 Modeling ------
 ## 8.1 Drop unused variables ######
@@ -460,45 +462,52 @@ dropVars2 <- c('Year.of.construction', 'Year', 'Area.m.2.', 'Building.structure'
 
 all <- Raw[,!(names(Raw) %in% dropVars2)]
 
-all <- as.factor(all$BigHouse)
+## 8.2 Removing outliers ######
+all <- all %>%
+  filter(Transaction.price.total. > 10000)
+
+## 8.3 log transform numeric variables if their distribution are skewed ######
 # Check how many numeric and factor variables we have now
 # Remove non-numeric variables
 numericVars <- which(sapply(all, is.numeric))
 numericVarNames <- names(numericVars)
-numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.Unit.price.m.2.','IsNew','Stationgroup','Areagroup'))]
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.total.','IsNew','BigHouse','StructureQuality'))]
 DFnumeric <- all[, names(all) %in% numericVarNames]
 DFfactors <- all[, !(names(all) %in% numericVarNames)]
-DFfactors <- DFfactors[, names(DFfactors) != 'Transaction.price.Unit.price.m.2.']
+DFfactors <- DFfactors[, names(DFfactors) != 'Transaction.price.total.']
 cat('There are', length(DFnumeric), 'numeric variables, and', length(DFfactors), 'factor variables.')
 
 # log transform the numberic variables if their distributions are skewed
+
 for(i in 1:ncol(DFnumeric)){
   if (abs(skew(DFnumeric[,i]))>0.8){
-    DFnumeric[,i] <- log(DFnumeric[,i] +1)
+    DFnumeric[,i] <- log(DFnumeric[,i]+1)
   }
 }
 
+# Center the numeric data
 PreNum <- preProcess(DFnumeric, method=c("center", "scale"))
 print(PreNum)
 
 DFnorm <- predict(PreNum, DFnumeric)
 dim(DFnorm)
 
-# one-hot coding
+## 8.4 Perform one-hot coding for factor variables ######
 DFdummies <- as.data.frame(model.matrix(~.-1, DFfactors))
 dim(DFdummies)
 
-# check if some values are absent in the test set
-ZerocolTest <- which(colSums(DFdummies[(nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),])+1):nrow(all),])==0)
-colnames(DFdummies[ZerocolTest])
+# # check if some values are absent in the test set
+# ZerocolTest <- which(colSums(DFdummies[(nrow(all[!is.na(all$Transaction.price.total.),])+1):nrow(all),])==0)
+# colnames(DFdummies[ZerocolTest])
+# 
+# # check if some values are absent in the train set
+# ZerocolTrain <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.total.),]),])==0)
+# colnames(DFdummies[ZerocolTrain])
+# 
+# DFdummies <- DFdummies[,-ZerocolTrain] #removing predictor
 
-# check if some values are absent in the train set
-ZerocolTrain <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),]),])==0)
-colnames(DFdummies[ZerocolTrain])
-
-DFdummies <- DFdummies[,-ZerocolTrain] #removing predictor
-
-fewOnes <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.Unit.price.m.2.),]),])<10)
+# removing levels with few or no observations in train or test 
+fewOnes <- which(colSums(DFdummies[1:nrow(all[!is.na(all$Transaction.price.total.),]),])<20)
 colnames(DFdummies[fewOnes])
 
 DFdummies <- DFdummies[,-fewOnes] #removing predictors
@@ -506,30 +515,30 @@ dim(DFdummies)
 
 combined <- cbind(DFnorm, DFdummies) #combining all (now numeric) predictors into one dataframe 
 
-# Check the skewness of responsive variable
-skew(all$Transaction.price.Unit.price.m.2.)
+## 8.5 Check the skewness and perform natural log transformation of responsive variable ######
+skew(all$Transaction.price.total.)
 
-png(file.path(dir,"Result","skewness_unit_price.png"))
-qqnorm(all$Transaction.price.Unit.price.m.2.)
-qqline(all$Transaction.price.Unit.price.m.2.)
+png(file.path(dir,"Result","skewness_price.png"))
+qqnorm(all$Transaction.price.total.)
+qqline(all$Transaction.price.total.)
 dev.off()
 
-all$Transaction.price.Unit.price.m.2. <- log(all$Transaction.price.Unit.price.m.2.) #default is the natural logarithm, "+1" is not necessary as there are no 0's
-skew(all$Transaction.price.Unit.price.m.2.)
-png(file.path(dir,"Result","skewness_unit_price.2.png"))
-qqnorm(all$Transaction.price.Unit.price.m.2.)
-qqline(all$Transaction.price.Unit.price.m.2.)
+all$Transaction.price.total. <- log(all$Transaction.price.total.) #default is the natural logarithm, "+1" is not necessary as there are no 0's
+skew(all$Transaction.price.total.)
+png(file.path(dir,"Result","skewness_price.2.png"))
+qqnorm(all$Transaction.price.total.)
+qqline(all$Transaction.price.total.)
 dev.off()
 
-# Composing train and test dataset
-train1 <- combined[!is.na(all$Transaction.price.Unit.price.m.2.),]
-test1 <- combined[is.na(all$Transaction.price.Unit.price.m.2.),]
+## 8.6 Composing train and test dataset ######
+# train1 <- combined[!is.na(all$Transaction.price.total.),]
+# test1 <- combined[is.na(all$Transaction.price.total.),]
 
-# Modeling, lasso -----------------------------------------------------------------------------------------------------------
+## 8.7 Modeling, lasso ######
 set.seed(27042018)
 my_control <-trainControl(method="cv", number=5)
 lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
-lasso_mod <- train(x=train1, y=all$Transaction.price.Unit.price.m.2.[!is.na(all$Transaction.price.Unit.price.m.2.)], method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
+lasso_mod <- train(x=combined, y=all$Transaction.price.total., method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
 lasso_mod$bestTune
 min(lasso_mod$results$RMSE)
 max(lasso_mod$results$Rsquared)
