@@ -560,7 +560,7 @@ dev.off()
 set.seed(27042018)
 my_control_ridge <-trainControl(method="cv", number=5)
 ridgeGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
-ridge_mod <- train(x=train1, y=all$Transaction.price.Unit.price.m.2.[!is.na(all$Transaction.price.Unit.price.m.2.)], method='glmnet', trControl= my_control_ridge, tuneGrid=ridgeGrid) 
+ridge_mod <- train(x=combined, y=all$Transaction.price.total., method='glmnet', trControl= my_control_ridge, tuneGrid=ridgeGrid) 
 ridge_mod$bestTune
 min(ridge_mod$results$RMSE)
 max(ridge_mod$results$Rsquared)
