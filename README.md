@@ -3,9 +3,10 @@
 ### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead.
 # Version 3.0
 # 1. Hightlight of this project
-* The R-square of the current model is 73%.
-* The minimal RMSE of the current model is 0.39, suggesting there is a 39% error of predicted price when compared to the real price. It's better than the previous version but still needs to be furhter improved.
+* The R-square of the current model is 78%.
+* The minimal RMSE of the current model is 0.3364, suggesting there is a 33.64% error of predicted price when compared to the real price. It's better than the previous version but still needs to be furhter improved.
 * This model can be applied to all areas in Kanagawa. 
+* This model cannot be used to predict house with trading price less than 3,000,000 yen.
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
 * I start this project to understand realestate market in Japan and to practice my data analysis skills. The idea behind this analysis is documented in each section of the README file. To increase the readibility, I remove most of R codes from the README file. The annotation of R codes can be in each section of the R file.
@@ -138,7 +139,7 @@ The importance of each numeric variable is revealed as the following figure.
 ![Price_floor_area0](/Result/Price_floor_area0.png?raw=true)
 
 # 5 Dealing with missing values
-Now I move on to deal with the missing values. I find that missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
+Missing values are shown in NA or "" (Blank) in this dataset. Some missing values in numeric variables are associated with specific values in character variables. This suggests that those variables are in a group and should be handled together. I frist start to identify NAs in numeric variables and deal with their associated values in character variables. There should be 20 variables containing missing values, which are listed below.  
 
 ```{r}
 blankcol <- which(sapply(Raw,function(x) any(x== "")))
@@ -276,13 +277,61 @@ I create a new variable "Structure Quality" to replace the "Building.structure" 
 ![Price_Structure_quality](/Result/Price_Structure_quality.png?raw=true)
 
 ## 7.4 StationDistance
-I know there is a significant decrease of price when the closet station is more than 45 mins. Hence, I create a variable "StationDistance" to represent this. However, after running a random forest test again, I find this new variable is less important than the original variable: "Nearest.station.Distance.minute.". So I decide not to include this variable in modeling.
+I know there is a significant decrease of price when the closet station is more than 45 mins. Hence, I create a variable "StationDistance" to represent this.
 
 ![StationDistance](/Result/StationDistance.png?raw=true)  
 
 # 8 Modeling
 ## 8.1 Drop highly correlated and unnecessary variables
-I drop variables that are metioned before. I also drop some variables that contribute less.
+I drop variables that are metioned before. I also drop some variables that contribute less variation, according to the results of random forest analysis. For factor variables, if the importance is more than 1%, I try to delete it and run the model. Now the combination of those following variables can create models with largest R-squared value and minimum RMSE. Here are some notes.
 
+* Add 'Area', 'Nearest.station.Name' can increae the R2 by 0.1-0.2% and decrease the RMSE by 0.002%.
+* Add 'Layout' can increase the R2 by 4% and slightly increase the RMSE by 0.001 - 0.003. 
+* In opposite, Add 'Frontage.road.Classification' largely decrease the R2 by 10% and increase the RMSE by 0.11.
+
+```{r}
+dropVars2 <- c('Year.of.construction', 'Year', 'Area.m.2.', 'Building.structure', 'Frontage.road.Classification', 'Region', 'City.Town.Ward.Village', 'quarter.1', 'Use', 'Purpose.of.Use')
+
+all <- Raw[,!(names(Raw) %in% dropVars2)]
+```
 ## 8.2 Removing outliers 
-I remove house with price less than 10000 yen.
+In a previous version, I remove houese less than 10,000 yen. However, the data distribution is still moderately negative-skewed. Hence, I decide to remove house with price less than 3,000,0000 yen. In fact, it is very rare to buy houses less than 10,000,000 yen in Japan. I will try to exclude houses less than 10,000,000 in a later version.
+
+## 8.3 Examine the skewness of numeric variables and make log transformation  
+The skewness of numeric variables needs to be further tested. If the skewness of a variable is larger than 0.8, it will be log tranformed and centered.
+
+## 8.4 Perform one-hot encoding for factor variables
+For factor variables (but not ordinal variables), the values need to be transformed into 1 and 0. The model.matrix funciton is used for one-hot encoding.
+
+```{r}
+DFdummies <- DFdummies[,-fewOnes] #removing predictors
+dim(DFdummies)
+
+[1] 166606   1804
+```  
+
+## 8.5 Check the skewness and perform natural log transformation of responsive variable  
+For the the dependent variables, the skewness is 22.67. There it needs to be log tranform to reduce its skewness. I perform the natural log transformation and the skewness reduces to -0.1897. It is much better.
+
+![skewness_price](/Result/skewness_price.png?raw=true)  
+![skewness_price.2](/Result/skewness_price.2.png?raw=true)  
+
+# 9 Modeling
+## 9.1 Lasso
+I use losso regression to build model. The lamda valus is set from 0.001 to 0.1 and increases by 0.0005.  I set he crossvalidation as 5. The final result of this model, R-squared is 0.7827 and RMSE-score is 0.3364. This suggests the model can explain 78% of the data variance and the error of predicted value to real value is 33.64%.
+
+```{r}
+lasso_mod$bestTune
+alpha lambda
+    1  0.001
+min(lasso_mod$results$RMSE)
+[1] 0.3364902
+max(lasso_mod$results$Rsquared)
+[1] 0.7826619
+```
+
+## 9.2 Ridge
+The ridge modeling generates similar results as lasso.
+
+
+

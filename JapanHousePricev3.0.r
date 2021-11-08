@@ -418,29 +418,29 @@ cor_structure <- cor(Raw$StructureQuality, Raw$Transaction.price.total., use="pa
 # ggsave(file.path(dir,"Result","Price_Structure_quality.png"))
 # dev.off()
 
-# Raw$StationDistance <- ifelse(Raw$Nearest.station.Distance.minute. < 45, 1, 0)
-# 
-# far_house <- Raw %>%
-#   filter(StationDistance == 0) %>%
-#   select(Transaction.price.total.)
-# 
-# close_house <- Raw %>%
-#   filter(StationDistance == 1) %>%
-#   select(Transaction.price.total.)
-# 
-# t_test_station <- t.test(log10(far_house),log10(close_house))
-# t_test_station
+Raw$StationDistance <- ifelse(Raw$Nearest.station.Distance.minute. < 45, 1, 0)
 
-# ggplot(Raw, aes(x=as.factor(StationDistance), y=log10(Transaction.price.total.))) +
-#   geom_bar(stat='summary', fun = "mean", fill='blue') +
-#   geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
-#   # divided by 1000000 is just to make sure the label is on the bottom
-#   theme_grey(base_size = 18) +
-#   ylim(0,10)+
-#   geom_hline(yintercept=7.32, linetype="dashed")
-# # dashed line is mean price
-# ggsave(file.path(dir,"Result","StationDistance.png"))
-# dev.off()
+far_house <- Raw %>%
+   filter(StationDistance == 0) %>%
+   select(Transaction.price.total.)
+
+ close_house <- Raw %>%
+   filter(StationDistance == 1) %>%
+   select(Transaction.price.total.)
+
+ t_test_station <- t.test(log10(far_house),log10(close_house))
+ t_test_station
+
+ ggplot(Raw, aes(x=as.factor(StationDistance), y=log10(Transaction.price.total.))) +
+   geom_bar(stat='summary', fun = "mean", fill='blue') +
+   geom_label(stat='count', aes(label=..count..,y=..count../1000000), size=6) +
+   # divided by 1000000 is just to make sure the label is on the bottom
+   theme_grey(base_size = 18) +
+   ylim(0,10)+
+   geom_hline(yintercept=7.32, linetype="dashed")
+ # dashed line is mean price
+ ggsave(file.path(dir,"Result","StationDistance.png"))
+ dev.off()
 
 # Run the random Forest again
 # RF<-as.data.frame(Raw)
@@ -457,21 +457,28 @@ cor_structure <- cor(Raw$StructureQuality, Raw$Transaction.price.total., use="pa
 
 # 8 Modeling ------
 ## 8.1 Drop unused variables ######
-dropVars2 <- c('Year.of.construction', 'Year', 'Area.m.2.', 'Building.structure', 'Nearest.station.Name', 'Region',
-                'City.Town.Ward.Village', 'Area','Frontage.road.Direction', 'quarter.1', 'Use', 'Purpose.of.Use')
+# I remove numeric variables that are already re-engineered. 
+# I also remove variables that contaings too many levels and contribute less variance.
+# I test the increase of R2 and decrease in RMSE when I add this variable to modeling.
+# Add 'Area', 'Nearest.station.Name' can increae the R2 by 0.1-0.2% and decrease the RMSE by 0.002%.
+# Add 'Layout' can increase the R2 by 4% and slightly increase the RMSE by 0.001 - 0.003. 
+# In opposite, Add 'Frontage.road.Classification' largely decrease the R2 by 10% and increase the RMSE by 0.11.
+
+dropVars2 <- c('Year.of.construction', 'Year', 'Area.m.2.', 'Building.structure', 'Frontage.road.Classification', 'Region',
+                'City.Town.Ward.Village', 'quarter.1', 'Use', 'Purpose.of.Use')
 
 all <- Raw[,!(names(Raw) %in% dropVars2)]
 
 ## 8.2 Removing outliers ######
 all <- all %>%
-  filter(Transaction.price.total. > 10000)
+  filter(Transaction.price.total. > 3000000)
 
 ## 8.3 log transform numeric variables if their distribution are skewed ######
 # Check how many numeric and factor variables we have now
 # Remove non-numeric variables
 numericVars <- which(sapply(all, is.numeric))
 numericVarNames <- names(numericVars)
-numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.total.','IsNew','BigHouse','StructureQuality'))]
+numericVarNames <- numericVarNames[!(numericVarNames %in% c('Transaction.price.total.','IsNew','BigHouse','StructureQuality','StationDistance'))]
 DFnumeric <- all[, names(all) %in% numericVarNames]
 DFfactors <- all[, !(names(all) %in% numericVarNames)]
 DFfactors <- DFfactors[, names(DFfactors) != 'Transaction.price.total.']
@@ -518,23 +525,25 @@ combined <- cbind(DFnorm, DFdummies) #combining all (now numeric) predictors int
 ## 8.5 Check the skewness and perform natural log transformation of responsive variable ######
 skew(all$Transaction.price.total.)
 
-png(file.path(dir,"Result","skewness_price.png"))
-qqnorm(all$Transaction.price.total.)
-qqline(all$Transaction.price.total.)
-dev.off()
+# png(file.path(dir,"Result","skewness_price.png"))
+# qqnorm(all$Transaction.price.total.)
+# qqline(all$Transaction.price.total.)
+# dev.off()
 
-all$Transaction.price.total. <- log(all$Transaction.price.total.) #default is the natural logarithm, "+1" is not necessary as there are no 0's
+# default is the natural logarithm, "+1" is not necessary as there are no 0's
+all$Transaction.price.total. <- log(all$Transaction.price.total.)
 skew(all$Transaction.price.total.)
-png(file.path(dir,"Result","skewness_price.2.png"))
-qqnorm(all$Transaction.price.total.)
-qqline(all$Transaction.price.total.)
-dev.off()
+# png(file.path(dir,"Result","skewness_price.2.png"))
+# qqnorm(all$Transaction.price.total.)
+# qqline(all$Transaction.price.total.)
+# dev.off()
 
 ## 8.6 Composing train and test dataset ######
 # train1 <- combined[!is.na(all$Transaction.price.total.),]
 # test1 <- combined[is.na(all$Transaction.price.total.),]
 
-## 8.7 Modeling, lasso ######
+# 9 Modeling ------
+## 9.1 lasso ######
 set.seed(27042018)
 my_control <-trainControl(method="cv", number=5)
 lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
@@ -543,20 +552,9 @@ lasso_mod$bestTune
 min(lasso_mod$results$RMSE)
 max(lasso_mod$results$Rsquared)
 
-LassoPred <- predict(lasso_mod, test1)
-predictions_lasso <- exp(LassoPred) #need to reverse the log to the real values
-head(predictions_lasso)
 
-lassoVarImp <- varImp(lasso_mod,scale=T)
-lassoImportance <- lassoVarImp$importance
-imp_lasso <- data.frame(Variables = row.names(lassoImportance), MSE = lassoImportance[,1])
-
-ggplot(imp_lasso[1:20,], aes(x=reorder(Variables, MSE), y=MSE, fill=MSE)) + geom_bar(stat = 'identity') + labs(x = 'Variables', y= '% increase MSE if variable is randomly permuted') + coord_flip() + theme(legend.position="none")
-ggsave(file.path(dir,"Result","mse_lasso.png"))
-dev.off()
-
-
-# Modeling, ridge -----------------------------------------------------------------------------------------------------------
+## 9.2 Modeling, ridge ######
+# The ridge modeling generates similar results as lasso.
 set.seed(27042018)
 my_control_ridge <-trainControl(method="cv", number=5)
 ridgeGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
@@ -564,7 +562,3 @@ ridge_mod <- train(x=combined, y=all$Transaction.price.total., method='glmnet', 
 ridge_mod$bestTune
 min(ridge_mod$results$RMSE)
 max(ridge_mod$results$Rsquared)
-
-ridgePred <- predict(ridge_mod, test1)
-predictions_ridge <- exp(ridgePred) #need to reverse the log to the real values
-head(predictions_ridge)
