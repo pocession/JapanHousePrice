@@ -76,15 +76,18 @@ str(Raw)
  $ Renovation                        : chr  "" "Not yet" "Not yet" "Done" ...
  $ Transactional.factors             : chr  "" "" "" "" ...
 ```
-#### "Transaction.price.total.": This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
+#### "Transaction.price.total.": 
+This is our dependent varialbe as well as the most important variable. I notice that there are some outliers. Since I will do many processings later, those outliers may be removed. I will check whether there are still outliers left before modeling. The distribution is left-skewed. I will correct the skewness before modeling, too.
 ```{r}
 summary(log10(Raw$Transaction.price.total.))
 ##  Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 ## 2.000   6.447   6.845   6.752   7.176   9.799 
 ```
 ![Price](/Result/Price.png?raw=true)  
-#### "Year": The year variable should be divided into year and quarters.
-#### "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
+#### "Year": 
+The year variable should be divided into year and quarters.
+#### "Area.m.2", "Nearest.station.Distance.minute.", "Total.floor.area.m.2.", "Year.of.construction", "Year": 
+After reading the data into dataframe, these variables may not be numeric. I use 'as.numeric()' to make sure these variables are numeric.
 #### "Nearest.station.Distance.minute."
 * This variable contains both numbers and characters and needs to be further processed. I first have a look at the data.
 ```{r}
@@ -111,8 +114,10 @@ Raw$Nearest.station.Distance.minute.[index5] <- 165
 ``` 
 * After plotting the relationship between price and distance of station, I find Nearest.station.Distance.minute. is much like a factor variable, as the data could be clearly separate into three groups: 0min, 0-45min, and >45min. I will handle this at the final step.
 
-#### "Frontage": I replace "50.0m or longer" as 50. There are a lot of missing values here, mostly are lands. I will deal with this in the later section.
-#### "City.Town.Ward.Village.code" is not a numeric variable. I transform it as a factor variable.
+#### "Frontage": 
+I replace "50.0m or longer" as 50. There are a lot of missing values here, mostly are lands. I will deal with this in the later section.
+#### "City.Town.Ward.Village.code": 
+This is not a numeric variable. I transform it as a factor variable.
 
 There should be 12 numeric variables now. Keep in mind that "No" is just an ID, not a real variable.  
 ```{r}
@@ -133,7 +138,8 @@ There are 12 numeric variables
 The importance of each numeric variable is revealed as the following figure.
 ![CorrelationvarNum](/Result/CorrelationvarNum.png?raw=true)
 
-#### "Total.floor.area.m.2.": This variable is the only numeric variable with a high correlation with our dependent variable. This makes sense. Houses with more floor area are expensive.
+#### "Total.floor.area.m.2.": 
+This variable is the only numeric variable with a high correlation with our dependent variable. This makes sense. Houses with more floor area are expensive.
 
 ![Price_floor_area0](/Result/Price_floor_area0.png?raw=true)
 
@@ -194,7 +200,8 @@ Price and maximum buidling coverage ratio:
 Price and maximum floor coverage ratio:
 ![Price_maxi_floor_coverage](/Result/Price_maxi_floor_coverage.png?raw=true)  
 
-* #### "Year.of.construction": There is no way to impute the year when the house was built. I omit data containg missing values in this variable.  
+* #### "Year.of.construction": 
+There is no way to impute the year when the house was built. I omit data containg missing values in this variable.  
 
 Price and Year.of.construction:
 ![Price_year_construction](/Result/Price_year_construction.png?raw=true) 
