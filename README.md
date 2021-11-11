@@ -162,25 +162,32 @@ Let's also check the distribution of missing values among each variables. As we 
 ![Missing](/Result/Missing.png?raw=true)  
 I will only discuss those real estates containing houses. I first exclude data belong to land properties. For character variables, I will assign "No_information" to missing values. For numeric variables, I will assign either 0 or a dummy number to NAs, depending on the data properties. 
 
-* #### "Region": Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "No_information" to them. 
+* #### "Region"
+Only a small fraction of NAs are related to Pre-owned Condominiums. Assign "No_information" to them. 
 
-* #### "Nearest.station.Name": this variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
+* #### "Nearest.station.Name"
+This variable is related to "Nearest.station.Distance.minute.". So let's identify data that contain missing values in "Nearest.station.Name" and "Nearest.station.Distance.minute.". Note NAs in "Nearest.station.Distance.minute." have been transformed to 165 in previous section. We then assign "No_station" to those data. Lastly, we exclude data that contains station names but without any distance information.
 
-* #### "Transaction.price.Unit.price.m.2.": As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.  
+* #### "Transaction.price.Unit.price.m.2."
+As there are already  "Transaction.price.Unit.price.total." and "Area.m.2.", this variable is redundant. I will exclude this variable from the data set later.  
 
-* #### "Frontage.road.Direction": this variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.  
+* #### "Frontage.road.Direction"
+This variable is related to other two variables: "Frontage.road.Classification" and "Frontage.road.Breadth.m.". If the data does not contain any facing road, then NAs are also shown in other two variables. Let's check whether number of the NAs in "Frontage.road.Breadth.m." matches the number of "No facing road" in "Frontage.road.Direction" as well as the number of "" (Blank) in "Frontage.road.Classification.". In the final step, we replace the NAs in Frontage.road.Breadth.m. with 0.  
 
-* #### Frontage: This variable means how long the front of a house is connected to the road. There are total 3053 data containing missing values. The missing value may be because no road connected to this house. There are total 2016 data falling in this category and 1037 NAs are still remained. As I have no idea why these 1037 data are missing, it is not safe to impute or delete those data. As the correlation of this variable with the price is very low, I decide not to include this variable when building model in this version. At least, there are already three variables related to the road:  "Frontage.road.Breadth.m.", "Frontage.road.Direction", and "Frontage.road.Classification".  
+* #### Frontage: 
+This variable means how long the front of a house is connected to the road. There are total 3053 data containing missing values. The missing value may be because no road connected to this house. There are total 2016 data falling in this category and 1037 NAs are still remained. As I have no idea why these 1037 data are missing, it is not safe to impute or delete those data. As the correlation of this variable with the price is very low, I decide not to include this variable when building model in this version. At least, there are already three variables related to the road:  "Frontage.road.Breadth.m.", "Frontage.road.Direction", and "Frontage.road.Classification".  
 
 Price and Frontage:
 ![Price_Frontage](/Result/Price_Frontage.png?raw=true)  
 
-* #### "Total.floor.area.m.2.": This is the most important predictor. For apartment and house containing only one floor, the floor area equals to it area. Therefore, I just copy the value of "Area" to this variable and omit those data containing missing values. Now the correlation is more clear.I also notice that there are some outliers. I will deal with those data later.
+* #### "Total.floor.area.m.2.": 
+This is the most important predictor. For apartment and house containing only one floor, the floor area equals to it area. Therefore, I just copy the value of "Area" to this variable and omit those data containing missing values. Now the correlation is more clear.I also notice that there are some outliers. I will deal with those data later.
 
 Price and floor area (new):
 ![Price_floor_area1](/Result/Price_floor_area1.png?raw=true)  
 
-* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": The maximum coverage ratio and floor ratio is regulated by laws. I could not make any imputation about those missing values based on other variables. In fact, given the low relationship between price and these two variables, it is not necessary to keep these two variables. Therefore, I decide to dropout these two variables. 
+* #### "Maximus.Building.Coverage.Ratio..." and "Maximus.Floor.area.Ratio...": 
+The maximum coverage ratio and floor ratio is regulated by laws. I could not make any imputation about those missing values based on other variables. In fact, given the low relationship between price and these two variables, it is not necessary to keep these two variables. Therefore, I decide to dropout these two variables. 
 
 Price and maximum buidling coverage ratio:
 ![Price_maxi_building_coverage](/Result/Price_maxi_building_coverage.png?raw=true) 
@@ -192,8 +199,10 @@ Price and maximum floor coverage ratio:
 Price and Year.of.construction:
 ![Price_year_construction](/Result/Price_year_construction.png?raw=true) 
 
-* #### "Area", "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning": Assign "No_information" to missing values in these three variables.  
-* #### "Renovation", and "Transactional.factors": These two variables contain too many NAs and not useful. I remove these two variables in modeling. 
+* #### "Area", "Layout", "Land.shape", "building.structure", "Use, Purpose.of.Use", "City.Planning":
+Assign "No_information" to missing values in these three variables.  
+* #### "Renovation", and "Transactional.factors": 
+These two variables contain too many NAs and not useful. I remove these two variables in modeling. 
 
 We should not have any variables containing missing values now.
 ```{r}
@@ -219,13 +228,16 @@ Random forest result:
 ![randomForest](/Result/randomForest.png?raw=true) 
 
 ## 6.3 Visualization
-* ### "Total.floor.area.m.2.", "Area.m.2.": I already know both are highly correlated with price but "Total.floor.area.m.2." is more correlated with price (p value of floor area and area is 0.62 and 0.47, respectively). Since both variables are also co-dependent (correlation = 0.7), I will keep "Total.floor.area.m.2." and remove the other. I also identify some outliers and will remove them before modeling. And I notice that fewer house with total floor area larger than 1000 mm2 and also have higher price. I will create another variable to represent those big and expensive houses.
+* ### "Total.floor.area.m.2.", "Area.m.2.": 
+I already know both are highly correlated with price but "Total.floor.area.m.2." is more correlated with price (p value of floor area and area is 0.62 and 0.47, respectively). Since both variables are also co-dependent (correlation = 0.7), I will keep "Total.floor.area.m.2." and remove the other. I also identify some outliers and will remove them before modeling. And I notice that fewer house with total floor area larger than 1000 mm2 and also have higher price. I will create another variable to represent those big and expensive houses.
 ![Price_floor_area1](/Result/Price_floor_area1.png?raw=true)
 
-* ### "Year.of.Construction", "Year": The price is highly correlated with the year of construction and is also little positively correlated with the year of sold. Therefore, I decide to create another variable representing the house of age. I also decide to create a variable to show the house is new or old when it is sold (Age < 1).   
+* ### "Year.of.Construction", "Year": 
+The price is highly correlated with the year of construction and is also little positively correlated with the year of sold. Therefore, I decide to create another variable representing the house of age. I also decide to create a variable to show the house is new or old when it is sold (Age < 1).   
 ![Year](/Result/Year.png?raw=true)
 
-* ### The most important factor variable: "Building.structure": I see there are some houses with rare structrues. I decide to create a variable to represent common and rare structure. I also see there is a trend that house with certain structrues are more expensive. I will create another new variable to represent this trend (e.g., w (stands for woods) are more expensive than RC and SRC). 
+* ### The most important factor variable "Building.structure": 
+I see there are some houses with rare structrues. I decide to create a variable to represent common and rare structure. I also see there is a trend that house with certain structrues are more expensive. I will create another new variable to represent this trend (e.g., w (stands for woods) are more expensive than RC and SRC). 
 ![Structure](/Result/Structure.png?raw=true)  
 
 # 7 Feature engineering
