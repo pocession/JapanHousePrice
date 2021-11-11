@@ -1,6 +1,5 @@
 ### This project is cloned and modified from 
 ### https://www.kaggle.com/erikbruin/house-prices-lasso-xgboost-and-a-detailed-eda/
-### To increase the readibility, I remove all the R codes from the readme file in this version. I annotate the corresponding section number in R script file instead.
 # Version 3.0
 # 1. Hightlight of this project
 * The R-square of the current model is 78%.
@@ -9,7 +8,7 @@
 * This model cannot be used to predict house with trading price less than 3,000,000 yen.
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
-* I start this project to understand realestate market in Japan and to practice my data analysis skills. The idea behind this analysis is documented in each section of the README file. To increase the readibility, I remove most of R codes from the README file. The annotation of R codes can be found in each section of the R file.
+* I start this project to understand real estate market in Japan and to practice my data analysis skills. The idea behind this analysis is documented in each section of the README file. To increase the readibility, I remove most of R codes from the README file. The annotation of R codes can be found in each section of the R file.
 * To shorten the running time, the plotting commands in the R file are hidden. 
 * In this version, only data of Kanagawa prefecture is used for modeling.  
 # 3. Data and Files
