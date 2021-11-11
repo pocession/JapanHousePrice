@@ -546,14 +546,13 @@ skew(all$Transaction.price.total.)
 ## 9.1 lasso ######
 set.seed(27042018)
 my_control <-trainControl(method="cv", number=5)
-lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.001,0.1,by = 0.0005))
+lassoGrid <- expand.grid(alpha = 1, lambda = seq(0.00001,0.001,by = 0.000005))
 lasso_mod <- train(x=combined, y=all$Transaction.price.total., method='glmnet', trControl= my_control, tuneGrid=lassoGrid) 
 lasso_mod$bestTune
 min(lasso_mod$results$RMSE)
 max(lasso_mod$results$Rsquared)
 
-
-## 9.2 Modeling, ridge ######
+## 9.2 ridge ######
 # The ridge modeling generates similar results as lasso.
 set.seed(27042018)
 my_control_ridge <-trainControl(method="cv", number=5)
