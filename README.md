@@ -4,7 +4,7 @@
 # 1. Hightlight of this project
 * The R-square of the current model is 78.43%.
 * The minimal RMSE of the current model is 0.3353, suggesting there is a 33.53% bias of predicted price when compared to the real price. It's better than the previous version but still needs to be furhter improved.
-* This model can be applied to all areas in Kanagawa. 
+* This model currently can only be applied to areas in Kanagawa. 
 * This model cannot be used to predict house with trading price less than 3,000,000 yen.
 * This model is scalable, means it could be adjusted to predict house prices across whole Japan.  
 # 2. Introduction
